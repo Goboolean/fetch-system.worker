@@ -2,11 +2,11 @@ package mock
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/ws"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -19,7 +19,7 @@ func SetupMockGenerater() {
 	ctx := context.Background()
 	ch = make(chan *ws.StockAggregate)
 
-	duration := time.Second / 1000 // the data is generated every 0.1 second in average.
+	duration := time.Second / 10000 // the data is generated every 0.1 second in average.
 
 	generater = newMockGenerater(symbol, ctx, ch, duration)
 }
@@ -33,18 +33,16 @@ func TeardownMockGenerater() {
 func Test_generateRandomStockAggs(t *testing.T) {
 
 	SetupMockGenerater()
+	defer TeardownMockGenerater()
 
 	agg := generater.generateRandomStockAggs()
-	if same := reflect.DeepEqual(agg, ws.StockAggregate{}); same {
-		t.Errorf("generateRandomStockAggs() = %v, want not empty", agg)
-		return
-	}
-
-	TeardownMockGenerater()
+	assert.NotEqual(t, agg, ws.StockAggregate{})
 }
 
 // It verdicts the test as success when it generates data 5 times for a second.
 func Test_newMockGenerater(t *testing.T) {
+
+	const count = 500000
 
 	SetupMockGenerater()
 	defer TeardownMockGenerater()
@@ -53,10 +51,10 @@ func Test_newMockGenerater(t *testing.T) {
 	defer cancel()
 
 	t.Run("generateRandomStockAggs", func(t *testing.T) {
-		for count := 5; count >= 0; count-- {
+		for i := 5; i >= 0; i-- {
 			select {
 			case <-ctx.Done():
-				t.Errorf("newMockGenerater() got timeout")
+				assert.Fail(t, "newMockGenerater() got timeout")
 				return
 			case <-ch:
 				continue
@@ -73,7 +71,7 @@ func Test_newMockGenerater(t *testing.T) {
 
 		select {
 		case <-ch:
-			t.Errorf("newMockGenerater got data after closing")
+			assert.Fail(t, "newMockGenerater got data after closing")
 			return
 		case <-time.After(time.Second / 10):
 			break
