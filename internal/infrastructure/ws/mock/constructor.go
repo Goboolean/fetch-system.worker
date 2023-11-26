@@ -38,7 +38,7 @@ func New(d time.Duration, r ws.Receiver) *MockFetcher {
 		cancel: cancel,
 	}
 
-	instance.ch = make(chan *ws.StockAggregate, 10)
+	instance.ch = make(chan *ws.StockAggregate, 50000)
 	instance.stocks = make(map[string]*mockGenerater)
 
 	go func(ctx context.Context) {
