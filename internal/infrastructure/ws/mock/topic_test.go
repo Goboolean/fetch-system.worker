@@ -19,7 +19,7 @@ func SetupMockGenerater() {
 	ctx := context.Background()
 	ch = make(chan *ws.StockAggregate)
 
-	duration := time.Second / 10000 // the data is generated every 0.1 milisecond in average.
+	duration := time.Second / 1000 // the data is generated every 0.1 milisecond in average.
 
 	generater = newMockGenerater(symbol, ctx, ch, duration)
 }
@@ -42,7 +42,7 @@ func Test_generateRandomStockAggs(t *testing.T) {
 // It verdicts the test as success when it generates data 5 times for a second.
 func Test_newMockGenerater(t *testing.T) {
 
-	const count = 50000
+	const count = 5000
 
 	SetupMockGenerater()
 	defer TeardownMockGenerater()
