@@ -3,7 +3,7 @@ name: Deploy image on
 on:
   push:
     branches:
-      - feature/**
+      - main
 
 jobs:
   test:
