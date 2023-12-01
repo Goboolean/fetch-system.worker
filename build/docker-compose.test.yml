@@ -1,0 +1,8 @@
+services:
+  server:
+    container_name: fetch-server
+    build:
+      context: ../
+      dockerfile: ./build/Dockerfile.test
+    ports:
+      - "9200:9200"

@@ -1,0 +1,21 @@
+name: Deploy image on 
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Decrypt environment variables
+        run: |
+          echo "${{ secrets.ENV }}" base64 -d > .env
+
+      - name: Run a test
+        run: |
+          make build-image

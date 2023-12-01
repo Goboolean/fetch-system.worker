@@ -1,0 +1,6 @@
+services:
+  server:
+    container_name: fetch-system.worker
+    build:
+      context: ../
+      dockerfile: ./build/Dockerfile
