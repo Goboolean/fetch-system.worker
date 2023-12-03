@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/Goboolean/common v0.0.0-20231130153141-cb54596b217d
+	github.com/google/uuid v1.4.0
 	github.com/stretchr/testify v1.8.4
 )
 
