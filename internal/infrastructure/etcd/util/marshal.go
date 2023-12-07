@@ -10,7 +10,7 @@ import (
 
 // GroupBy groups the list by the distinquisher that appears just after the prefix.
 // It assums that list is sorted by key.
-func GroupBy(list map[string]string) ([]map[string]string, error) {
+func GroupByPrefix(list map[string]string) ([]map[string]string, error) {
 	var m = make(map[string]map[string]string)
 	var result []map[string]string
 
@@ -43,7 +43,7 @@ func GroupBy(list map[string]string) ([]map[string]string, error) {
 
 
 
-func Mmarshal(m Model) (map[string]string, error) {
+func Serialize(m Model) (map[string]string, error) {
 	t := reflect.TypeOf(m)
 
 	if t.Kind() != reflect.Ptr {
@@ -84,11 +84,11 @@ func Mmarshal(m Model) (map[string]string, error) {
 	return result, nil
 }
 
-func MarshalList(list []Model) (map[string]string, error) {
+func SerializeList(list []Model) (map[string]string, error) {
 	var result = make(map[string]string)
 
 	for _, v := range list {
-		m, err := Mmarshal(v)
+		m, err := Serialize(v)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func MarshalList(list []Model) (map[string]string, error) {
 
 
 
-func Unmarshal(str map[string]string, m Model) error {
+func Deserialize(str map[string]string, m Model) error {
 	t := reflect.TypeOf(m)
 
 	if t.Kind() != reflect.Ptr {

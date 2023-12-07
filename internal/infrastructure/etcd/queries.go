@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Client) InsertWorker(ctx context.Context, w *Worker) error {
-	payload, err := etcdutil.Mmarshal(w)
+	payload, err := etcdutil.Serialize(w)
 
 	var ops []clientv3.Op
 	for k, v := range payload {
@@ -48,7 +48,7 @@ func (c *Client) GetWorker(ctx context.Context, id string) (*Worker, error) {
 	m := etcdutil.PayloadToMap(resp)
 
 	var w Worker
-	if err := etcdutil.Unmarshal(m, &w); err != nil {
+	if err := etcdutil.Deserialize(m, &w); err != nil {
 		return nil, err
 	}
 	return &w, nil
@@ -62,7 +62,7 @@ func (c *Client) GetAllWorkers(ctx context.Context) ([]*Worker, error) {
 	}
 	m := etcdutil.PayloadToMap(resp)
 
-	list, err := etcdutil.GroupBy(m)
+	list, err := etcdutil.GroupByPrefix(m)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Client) GetAllWorkers(ctx context.Context) ([]*Worker, error) {
 	var w []*Worker = make([]*Worker, len(list))
 	for i, v := range list {
 		var worker Worker
-		if err := etcdutil.Unmarshal(v, &worker); err != nil {
+		if err := etcdutil.Deserialize(v, &worker); err != nil {
 			return nil, err
 		}
 		w[i] = &worker
@@ -89,7 +89,7 @@ func (c *Client) DeleteWorker(ctx context.Context, id string) error {
 }
 
 func (c *Client) InsertOneProduct(ctx context.Context, p *Product) error {
-	payload, err := etcdutil.Mmarshal(p)
+	payload, err := etcdutil.Serialize(p)
 
 	var conditions []clientv3.Cmp
 	for k := range payload {
@@ -121,7 +121,7 @@ func (c *Client) InsertProducts(ctx context.Context, p []*Product) error {
 	var ops []clientv3.Op
 
 	for _, v := range p {
-		payload, err := etcdutil.Mmarshal(v)
+		payload, err := etcdutil.Serialize(v)
 		if err != nil {
 			return err
 		}
@@ -159,7 +159,7 @@ func (c *Client) GetProduct(ctx context.Context, id string) (*Product, error) {
 	m := etcdutil.PayloadToMap(resp)
 
 	var p Product
-	if err := etcdutil.Unmarshal(m, &p); err != nil {
+	if err := etcdutil.Deserialize(m, &p); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -173,7 +173,7 @@ func (c *Client) GetAllProducts(ctx context.Context) ([]*Product, error) {
 	}
 	m := etcdutil.PayloadToMap(resp)
 
-	list, err := etcdutil.GroupBy(m)
+	list, err := etcdutil.GroupByPrefix(m)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (c *Client) GetAllProducts(ctx context.Context) ([]*Product, error) {
 	var p []*Product = make([]*Product, len(list))
 	for i, v := range list {
 		var product Product
-		if err := etcdutil.Unmarshal(v, &product); err != nil {
+		if err := etcdutil.Deserialize(v, &product); err != nil {
 			return nil, err
 		}
 		p[i] = &product
