@@ -10,7 +10,7 @@ import (
 type Trade struct {
 	Symbol    string
 	Price     float64
-	Amount    int
+	Amount    int64
 	Timestamp time.Time
 }
 
@@ -44,5 +44,5 @@ func Symbol() string {
 		}
 	}
 
-	return fmt.Sprintf("%s.%s.%s", "MOCK",name,"io")
+	return fmt.Sprintf("%s.%s.%s", "test",name,"io")
 }

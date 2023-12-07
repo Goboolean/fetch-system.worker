@@ -58,7 +58,7 @@ func New(c *resolver.ConfigMap) (*Client, error) {
 		}
 
 	case "CUSTOM":
-		return &Client{}, fmt.Errorf("not implemented")
+		return &Client{}, fmt.Errorf("not implemented yet")
 	}
 
 	size, err := c.GetIntKey("BUFFER_SIZE")
