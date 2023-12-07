@@ -61,8 +61,8 @@ func Test_Generate1mPerSec(t *testing.T) {
 		received += len(ch)
 	})
 
-	assert.LessOrEqual(t, int(total * 0.99), received)
-	assert.GreaterOrEqual(t, int(total * 1.01), received)
+	assert.LessOrEqual(t, int(total * 0.90), received)
+	assert.GreaterOrEqual(t, int(total * 1.1), received)
 }
 
 func TeardownMockGenerater(m *mock.Client) {

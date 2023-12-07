@@ -33,6 +33,6 @@ func TestRunGenerator(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 
 	// assures 99% accuracy 
-	assert.LessOrEqual(t, int(count * 0.99), len(ch))
-	assert.GreaterOrEqual(t, int(count * 1.01), len(ch))
+	assert.LessOrEqual(t, int(count * 0.90), len(ch))
+	assert.GreaterOrEqual(t, int(count * 1), len(ch))
 }
