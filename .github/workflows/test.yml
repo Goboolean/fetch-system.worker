@@ -14,7 +14,7 @@ jobs:
 
       - name: Decrypt environment variables
         run: |
-          echo "${{ secrets.ENV }}" base64 -d > build/.env
+          echo "${{ secrets.ENV }}" > build/.env
 
       - name: Run a test
         run: |
