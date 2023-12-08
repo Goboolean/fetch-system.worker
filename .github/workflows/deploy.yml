@@ -1,4 +1,4 @@
-name: Deploy image on 
+name: Deploy image to production
 
 on:
   push:
@@ -14,8 +14,8 @@ jobs:
 
       - name: Decrypt environment variables
         run: |
-          echo "${{ secrets.ENV }}" base64 -d > .env
+          echo "${{ secrets.ENV }}" > build/.env
 
-      - name: Run a test
+      - name: Build & push image
         run: |
           make build-image
