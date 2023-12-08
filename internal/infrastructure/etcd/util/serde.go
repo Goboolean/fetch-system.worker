@@ -10,12 +10,11 @@ import (
 
 // GroupBy groups the list by the distinquisher that appears just after the prefix.
 // It assums that list is sorted by key.
-func GroupByPrefix(list map[string]string) ([]map[string]string, error) {
-	var m = make(map[string]map[string]string)
-	var result []map[string]string
+func GroupByPrefix(input map[string]string) (output []map[string]string, err error) {
+	var mapBased = make(map[string]map[string]string)
 
 	var _type string
-	for k := range list {
+	for k := range input {
 		p := strings.Split(k, "/")[1]
 		if _type == "" {
 			_type = p
@@ -28,17 +27,17 @@ func GroupByPrefix(list map[string]string) ([]map[string]string, error) {
 
 	var prefix = Group(_type)
 
-	for k, v := range list {
+	for k, v := range input {
 		p := strings.Split(strings.TrimPrefix(k, prefix), "/")[1]
-		if _, ok := m[p]; !ok {
-			m[p] = make(map[string]string)
+		if _, ok := mapBased[p]; !ok {
+			mapBased[p] = make(map[string]string)
 		}
-		m[p][k] = v
+		mapBased[p][k] = v
 	}
-	for _, v := range m {
-		result = append(result, v)
+	for _, v := range mapBased {
+		output = append(output, v)
 	}
-	return result, nil
+	return
 }
 
 
@@ -51,7 +50,7 @@ func Serialize(m Model) (map[string]string, error) {
 	}
 	t = t.Elem()
 
-	var result = make(map[string]string)
+	var output = make(map[string]string)
 	var prefix string
 	var id string
 
@@ -68,7 +67,7 @@ func Serialize(m Model) (map[string]string, error) {
 	}
 
 	prefix = fmt.Sprintf("/%s/%s/", m.Name(), id)
-	result[strings.TrimSuffix(prefix, "/")] = ""
+	output[strings.TrimSuffix(prefix, "/")] = ""
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -78,14 +77,14 @@ func Serialize(m Model) (map[string]string, error) {
 		}
 
 		var value = reflect.ValueOf(m).Elem().FieldByName(field.Name).String()
-		result[prefix+key] = value
+		output[prefix+key] = value
 	}
 
-	return result, nil
+	return output, nil
 }
 
 func SerializeList(list []Model) (map[string]string, error) {
-	var result = make(map[string]string)
+	var output = make(map[string]string)
 
 	for _, v := range list {
 		m, err := Serialize(v)
@@ -93,31 +92,31 @@ func SerializeList(list []Model) (map[string]string, error) {
 			return nil, err
 		}
 		for k, v := range m {
-			result[k] = v
+			output[k] = v
 		}
 	}
 
-	return result, nil
+	return output, nil
 }
 
 
 
-func Deserialize(str map[string]string, m Model) error {
-	t := reflect.TypeOf(m)
+func Deserialize(input map[string]string, output Model) error {
+	t := reflect.TypeOf(output)
 
 	if t.Kind() != reflect.Ptr {
 		return ErrGivenNotAPointer
 	}
 	t = t.Elem()
 
-
+	
 	var id string
 
-	for k, v := range str {
+	for k, v := range input {
 		spl := strings.Split(k, "/")
 
 		_type := spl[1]
-		if _type != m.Name() {
+		if _type != output.Name() {
 			return ErrGivenTypeNotMatch
 		}
 
@@ -145,7 +144,7 @@ func Deserialize(str map[string]string, m Model) error {
 			}
 		}
 
-		f := reflect.ValueOf(m).Elem().FieldByName(name)
+		f := reflect.ValueOf(input).Elem().FieldByName(name)
 		if f.IsValid() == false || f.CanSet() == false {
 			return ErrFieldNotSettable
 		}
@@ -160,7 +159,7 @@ func Deserialize(str map[string]string, m Model) error {
 		}
 
 		if field.Tag.Get("etcd") == "id" {
-			reflect.ValueOf(m).Elem().FieldByName(field.Name).SetString(id)
+			reflect.ValueOf(input).Elem().FieldByName(field.Name).SetString(id)
 			break
 		}
 	}
