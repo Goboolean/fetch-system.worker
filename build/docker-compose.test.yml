@@ -6,3 +6,5 @@ services:
       dockerfile: ./build/Dockerfile.test
     ports:
       - "9200:9200"
+    env_file:
+      - .env
