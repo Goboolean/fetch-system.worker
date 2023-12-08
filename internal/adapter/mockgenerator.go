@@ -19,12 +19,12 @@ func NewMockGeneratorAdapter(g *mock.Client) (out.DataFetcher, error) {
 	}, nil
 }
 
-func (a *MockGeneratorAdapter) Subscribe() (<-chan vo.Trade, error) {
+func (a *MockGeneratorAdapter) Subscribe(symbols ...string) (<-chan vo.Trade, error) {
 
 	ch := make(chan vo.Trade)
 
 	go func() {
-		for v := range a.g.Subscribe() {
+		for v := range a.g.Subscribe(symbols...) {
 			ch <- vo.Trade{
 				ID: v.Symbol,
 				TradeDetail: vo.TradeDetail{
