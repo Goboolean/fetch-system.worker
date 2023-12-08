@@ -37,7 +37,7 @@ func Test_GroupByPrefix(t *testing.T) {
 	}
 }
 
-func Test_Marshal(t *testing.T) {
+func Test_Serialize(t *testing.T) {
 
 	for _, tt := range cases {
 		for _, ttt := range tt.group {
@@ -52,7 +52,7 @@ func Test_Marshal(t *testing.T) {
 	}
 }
 
-func Test_Unmarshal(t *testing.T) {
+func Test_Deserialize(t *testing.T) {
 
 	for _, tt := range cases {
 		for _, ttt := range tt.group {
@@ -67,7 +67,7 @@ func Test_Unmarshal(t *testing.T) {
 	}
 }
 
-func Test_MarshalUnmarshal(t *testing.T) {
+func Test_SerializeDeserialize(t *testing.T) {
 
 	for _, tt := range cases {
 		for _, ttt := range tt.group {
