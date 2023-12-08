@@ -41,7 +41,6 @@ func TestStockClient(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 2)
 		defer cancel()
 
-		
 		err := c.Ping(ctx)
 		assert.NoError(t, err)
 	})

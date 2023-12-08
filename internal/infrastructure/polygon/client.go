@@ -19,6 +19,8 @@ type client[T models.EquityTrade | models.CryptoTrade] struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+
+	topic polygonws.Topic
 }
 
 
@@ -52,23 +54,29 @@ func newClient[T models.EquityTrade | models.CryptoTrade](c *resolver.ConfigMap)
 		return nil, err
 	}
 
-	_feed, err := c.GetStringKey("FEED")
+	feed, err := c.GetStringKey("FEED")
 	if err != nil {
 		return nil, err
 	}
-	feed := polygonws.Feed(_feed)
 
-	_market, err := c.GetStringKey("MARKET")
+	market, err := c.GetStringKey("MARKET")
 	if err != nil {
 		return nil, err
 	}
-	market := polygonws.Market(_market)
 
 	conn, err := polygonws.New(polygonws.Config{
 		APIKey: key,
-		Feed:   feed,
-		Market: market,
+		Feed:   polygonws.Feed(feed),
+		Market: polygonws.Market(market),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	topic, err := c.GetIntKey("TOPIC")
+	if err != nil {
+		return nil, err
+	}
 
 	buf, err := c.GetIntKey("BUFFER_SIZE")
 	if err != nil {
@@ -83,12 +91,14 @@ func newClient[T models.EquityTrade | models.CryptoTrade](c *resolver.ConfigMap)
 
 		ctx: ctx,
 		cancel: cancel,
+
+		topic: polygonws.Topic(topic),
 	}, nil
 }
 
 func (c *client[T]) Subscribe() (<-chan T, error) {
 
-	if err := c.conn.Subscribe(polygonws.StocksTrades); err != nil {
+	if err := c.conn.Subscribe(c.topic); err != nil {
 		return nil, err
 	}
 

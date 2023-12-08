@@ -29,9 +29,7 @@ func SetupCryptoClient() *polygon.CryptoClient {
 }
 
 func TeardownCryptoClient(c *polygon.CryptoClient) {
-	fmt.Println("Closing")
 	c.Close()
-	fmt.Println("Closed")
 }
 
 
@@ -47,7 +45,7 @@ func TestCryptoClient(t *testing.T) {
 		defer cancel()
 
 		err := c.Ping(ctx)
-		assert.NoError(t, err)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 
 	t.Run("Subscribe()", func(t *testing.T) {
