@@ -83,11 +83,20 @@ func New(c *resolver.ConfigMap) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Subscribe() <-chan *Trade {
+func (c *Client) Subscribe(symbols ...string) <-chan *Trade {
 
-	for i := 0; i < c.config.cnt; i++ {
-		dur := time.Second / time.Duration(c.config.rate)
-		go RunGenerator(c.ctx, Symbol(), dur, c.ch)
+	if len(symbols) == 0 {
+		for i := 0; i < c.config.cnt; i++ {
+			dur := time.Second / time.Duration(c.config.rate)
+			go RunGenerator(c.ctx, Symbol(), dur, c.ch)
+		}		
+	}
+
+	if len(symbols) > 0 {
+		for _, symbol := range symbols {
+			dur := time.Second / time.Duration(c.config.rate)
+			go RunGenerator(c.ctx, symbol, dur, c.ch)
+		}
 	}
 
 	return c.ch
