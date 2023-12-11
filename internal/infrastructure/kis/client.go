@@ -146,7 +146,7 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 			continue
 		}
 
-		if tryParsingToPingMsg(message) {
+		if isPingpongMsg(message) {
 			c.tryVacatingMsgCh()
 			c.msgCh <- struct{}{}
 			continue
@@ -157,7 +157,7 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 			continue
 		}
 
-		data, err := UnmarshalTrade(string(message))
+		data, err := parseTrade(string(message))
 		if err != nil {
 			c.errCh <- err
 			continue

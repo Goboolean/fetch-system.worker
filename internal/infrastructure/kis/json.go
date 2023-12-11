@@ -87,7 +87,7 @@ func tryParsingToSubResp(data []byte) (string, bool) {
 }
 
 
-func tryParsingToPingMsg(data []byte) bool {
+func isPingpongMsg(data []byte) bool {
 	var res ResponseJson
 	if err := json.Unmarshal(data, &res); err != nil {
 		return false

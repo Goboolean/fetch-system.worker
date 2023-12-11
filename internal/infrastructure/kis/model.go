@@ -2,43 +2,43 @@ package kis
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 )
 
 
 
-func UnmarshalTrade(str string) ([]*Trade, error) {
+func parseTrade(str string) ([]*Trade, error) {
 
 	data := strings.Split(str, "^")
-
-	var trade []*Trade = make([]*Trade, 0)
+	tradeList := make([]*Trade, 0)
 
 	if len(data) % 26 == 0 {
+
 		for i := 0; i < len(data); i += 26 {
-			var t *Trade
-			tmp := data[i:i+26]
-			t, err := parseUSAStockToTrade(parseStringToUSAStock(tmp))
+			dataPiece := data[i:i+26]
+			trade, err := parseStringToKORTrade(dataPiece)
 			if err != nil {
 				return nil, err
 			}
-			trade = append(trade, t)
+			tradeList = append(tradeList, trade)
 		}
 
-		return trade, nil
+		return tradeList, nil
 	}
 	
 	if len(data) % 46 == 0 {
 		for i := 0; i < len(data); i += 46 {
-			var t *Trade
-			tmp := data[i:i+46]
-			t, err := parseKORStockToTrade(parseStringToKORStock(tmp))
+			dataPiece := data[i:i+46]
+			trade, err := parseStringToOverseaTrade(dataPiece)
 			if err != nil {
 				return nil, err
 			}
-			trade = append(trade, t)
+			tradeList = append(tradeList, trade)
 		}
 
-		return trade, nil
+		return tradeList, nil
 	}
 
 	return nil, fmt.Errorf("incorrect number of fields in response: %d", len(data))
@@ -46,7 +46,7 @@ func UnmarshalTrade(str string) ([]*Trade, error) {
 
 
 
-type USAStockDetail struct {
+type OverseaTradeForm struct {
 	RSYM string // 실시간 종목코드
 	SYMB string // 종목코드
 	ZDIV string // 수수점자리수
@@ -124,9 +124,9 @@ type KORStockDetail struct {
 	VI_STND_PRC                  string // 정적 VI 발동 기준가
 }
 
-func parseStringToUSAStock(data []string) *USAStockDetail {
+func parseStringToOverseaTrade(data []string) (*Trade, error) {
 	slicedRSYM := strings.Split(data[0], "|")
-	return &USAStockDetail{
+	detail := &OverseaTradeForm{
 		RSYM: slicedRSYM[3],
 		SYMB: data[1],
 		ZDIV: data[2],
@@ -154,10 +154,27 @@ func parseStringToUSAStock(data []string) *USAStockDetail {
 		STRN: data[24],
 		MTYP: data[25],
 	}
+
+	price, err := strconv.ParseFloat(detail.LAST, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	size, err := strconv.Atoi(detail.EVOL)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Trade{
+		Symbol:   detail.RSYM,
+		Price:    price,
+		Size:   size,
+		Timestamp: time.Now().UnixNano(),
+	}, nil
 }
 
-func parseStringToKORStock(data []string) *KORStockDetail {
-	return &KORStockDetail{
+func parseStringToKORTrade(data []string) (*Trade, error) {
+	detail := &KORStockDetail{
 		MKSC_SHRN_ISCD:               data[0],
 		STCK_CNTG_HOUR:               data[1],
 		STCK_PRPR:                    data[2],
@@ -205,17 +222,30 @@ func parseStringToKORStock(data []string) *KORStockDetail {
 		MRKT_TRTM_CLS_CODE:           data[44],
 		VI_STND_PRC:                  data[45],
 	}
+
+	price, err := strconv.ParseFloat(detail.STCK_PRPR, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	size, err := strconv.Atoi(detail.CNTG_VOL)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Trade{
+		Symbol:    detail.MKSC_SHRN_ISCD,
+		Price:     price,
+		Size:      size,
+		Timestamp: time.Now().UnixNano(),
+	}, nil
 }
 
-func parseKORStockToTrade(*KORStockDetail) (*Trade, error) {
-	return &Trade{}, nil
-}
-
-func parseUSAStockToTrade(*USAStockDetail) (*Trade, error) {
-	return &Trade{}, nil
-}
 
 
 type Trade struct {
-
+	Symbol    string
+	Price     float64
+	Size      int
+	Timestamp int64
 }
