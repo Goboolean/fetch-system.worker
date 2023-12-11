@@ -64,11 +64,19 @@ type ResponseBodyJson struct {
 }
 
 
+type PingpongHeaderJson struct {
+	TrId      string `json:"tr_id"`
+	Datetime  string `json:"datetime"`
+}
 
-func parseToSubscriptionResponse(data []byte) (string, bool) {
+type PingpongResponseJson struct {
+	Header PingpongHeaderJson `json:"header"`
+}
+
+func tryParsingToSubResp(data []byte) (string, bool) {
 
 	var res ResponseJson
-	if err := json.Unmarshal([]byte(data), &res); err != nil {
+	if err := json.Unmarshal(data, &res); err != nil {
 		return "", false
 	}
 	if res.Header.TrID == "" || res.Header.TrKey == "" || res.Header.Encrypt == "" {
@@ -76,4 +84,16 @@ func parseToSubscriptionResponse(data []byte) (string, bool) {
 	}
 
 	return res.Header.TrKey, true
+}
+
+
+func tryParsingToPingMsg(data []byte) bool {
+	var res ResponseJson
+	if err := json.Unmarshal(data, &res); err != nil {
+		return false
+	}
+	if res.Header.TrID != "PINGPONG" {
+		return false
+	}
+	return true
 }

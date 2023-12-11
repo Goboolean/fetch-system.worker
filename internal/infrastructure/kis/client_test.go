@@ -1,6 +1,7 @@
 package kis_test
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -34,6 +35,21 @@ func TeardownKis(c *kis.Client) {
 }
 
 
+func TestConstructor(t *testing.T) {
+
+	c := SetupKis()
+	defer TeardownKis(c)
+
+	t.Run("Ping", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+
+		err := c.Ping(ctx)
+		assert.NoError(t, err)
+	})
+}
+
+
 
 func Test_KIS(t *testing.T) {
 
@@ -44,10 +60,10 @@ func Test_KIS(t *testing.T) {
 
 	t.Run("Subscribe", func(t *testing.T) {
 
-		ch, err := c.Subscribe(symbol)
-		assert.NoError(t, err)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 
-		time.Sleep(time.Second * 20)
-		t.Log(len(ch))
+		_, err := c.Subscribe(ctx, symbol)
+		assert.NoError(t, err)
 	})
 }
