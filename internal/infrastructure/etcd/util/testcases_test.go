@@ -143,26 +143,3 @@ var cases []struct {
 		},
 	},
 }
-
-/*
-	{
-		name: "Nested Struct",
-		str: map[string]string{
-			"nested/mulmuri.dev": "",
-			"nested/mulmuri.dev/detail": "",
-			"nested/mulmuri.dev/detail/name": "goboolean",
-			"nested/mulmuri.dev/detail/age": "1",
-		},
-		model: &Nested{},
-		data: &Nested{
-			ID: "mulmuri.dev",
-			Detail: struct{
-				Name string `etcd:"name"`
-				Age int `etcd:"age"`
-			} {
-				Name: "goboolean",
-				Age: 1,
-			},
-		},
-	},
-*/

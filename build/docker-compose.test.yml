@@ -8,6 +8,8 @@ services:
     environment:
       - ETCD_HOST=etcd:2379
       - ETCD_PEER_HOST=etcd:2380
+    env_file:
+      - .env
 
   etcd:
     image: bitnami/etcd:latest

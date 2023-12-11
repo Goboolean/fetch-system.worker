@@ -37,7 +37,7 @@ func GroupByPrefix(input map[string]string) (output []map[string]string, err err
 	for _, v := range mapBased {
 		output = append(output, v)
 	}
-	return
+	return output, nil
 }
 
 
@@ -50,7 +50,7 @@ func Serialize(m Model) (map[string]string, error) {
 	}
 	t = t.Elem()
 
-	var output = make(map[string]string)
+	var result = make(map[string]string)
 	var prefix string
 	var id string
 
@@ -67,7 +67,7 @@ func Serialize(m Model) (map[string]string, error) {
 	}
 
 	prefix = fmt.Sprintf("/%s/%s/", m.Name(), id)
-	output[strings.TrimSuffix(prefix, "/")] = ""
+	result[strings.TrimSuffix(prefix, "/")] = ""
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -77,14 +77,14 @@ func Serialize(m Model) (map[string]string, error) {
 		}
 
 		var value = reflect.ValueOf(m).Elem().FieldByName(field.Name).String()
-		output[prefix+key] = value
+		result[prefix+key] = value
 	}
 
-	return output, nil
+	return result, nil
 }
 
 func SerializeList(list []Model) (map[string]string, error) {
-	var output = make(map[string]string)
+	var result = make(map[string]string)
 
 	for _, v := range list {
 		m, err := Serialize(v)
@@ -92,11 +92,11 @@ func SerializeList(list []Model) (map[string]string, error) {
 			return nil, err
 		}
 		for k, v := range m {
-			output[k] = v
+			result[k] = v
 		}
 	}
 
-	return output, nil
+	return result, nil
 }
 
 
@@ -109,7 +109,7 @@ func Deserialize(input map[string]string, output Model) error {
 	}
 	t = t.Elem()
 
-	
+
 	var id string
 
 	for k, v := range input {
@@ -144,7 +144,7 @@ func Deserialize(input map[string]string, output Model) error {
 			}
 		}
 
-		f := reflect.ValueOf(input).Elem().FieldByName(name)
+		f := reflect.ValueOf(output).Elem().FieldByName(name)
 		if f.IsValid() == false || f.CanSet() == false {
 			return ErrFieldNotSettable
 		}
@@ -159,7 +159,7 @@ func Deserialize(input map[string]string, output Model) error {
 		}
 
 		if field.Tag.Get("etcd") == "id" {
-			reflect.ValueOf(input).Elem().FieldByName(field.Name).SetString(id)
+			reflect.ValueOf(output).Elem().FieldByName(field.Name).SetString(id)
 			break
 		}
 	}
