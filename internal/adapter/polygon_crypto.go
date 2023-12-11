@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"time"
 
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
@@ -19,7 +20,7 @@ func NewCryptoPolygonAdapter(c *polygon.CryptoClient) (out.DataFetcher, error) {
 	}, nil
 }
 
-func (a *CryptoPolygonAdapter) Subscribe(symbol ...string) (<-chan vo.Trade, error) {
+func (a *CryptoPolygonAdapter) Subscribe(ctx context.Context, symbol ...string) (<-chan vo.Trade, error) {
 	
 	ch := make(chan vo.Trade)
 

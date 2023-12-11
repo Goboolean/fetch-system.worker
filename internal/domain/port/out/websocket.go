@@ -1,9 +1,13 @@
 package out
 
-import "github.com/Goboolean/fetch-system.worker/internal/domain/vo"
+import (
+	"context"
+
+	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
+)
 
 type DataFetcher interface {
-	Subscribe(symbols ...string) (<-chan vo.Trade, error)
+	Subscribe(ctx context.Context, symbols ...string) (<-chan vo.Trade, error)
 }
 
 type DataDispatcher interface {

@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"context"
+
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
@@ -19,7 +21,7 @@ func NewMockGeneratorAdapter(g *mock.Client) (out.DataFetcher, error) {
 	}, nil
 }
 
-func (a *MockGeneratorAdapter) Subscribe(symbols ...string) (<-chan vo.Trade, error) {
+func (a *MockGeneratorAdapter) Subscribe(ctx context.Context, symbols ...string) (<-chan vo.Trade, error) {
 
 	ch := make(chan vo.Trade)
 
