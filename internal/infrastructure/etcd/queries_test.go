@@ -63,10 +63,10 @@ func Test_Constructor(t *testing.T) {
 func Test_Worker(t *testing.T) {
 
 	var workers []*etcd.Worker = []*etcd.Worker{
-		{ID: uuid.New().String(), Platform: "polygon", Status: "active"},
-		{ID: uuid.New().String(), Platform: "polygon", Status: "pending"},
-		{ID: uuid.New().String(), Platform: "kis", Status: "active"},
-		{ID: uuid.New().String(), Platform: "kis", Status: "pending"},
+		{ID: uuid.New().String(), Platform: "polygon", Status: "primary"},
+		{ID: uuid.New().String(), Platform: "polygon", Status: "secondary"},
+		{ID: uuid.New().String(), Platform: "kis",     Status: "exited"},
+		{ID: uuid.New().String(), Platform: "kis",     Status: "onpromotion"},
 	}
 
 	t.Run("InsertWorker", func(t *testing.T) {
@@ -98,6 +98,26 @@ func Test_Worker(t *testing.T) {
 		assert.Equal(t, "dead", w.Status)
 	})
 
+	t.Run("UpdateWorkerStatus", func(t *testing.T) {
+		var timestr = time.Now().String()
+
+		err := client.UpdateWorkerStatus(context.Background(), workers[0].ID, timestr)
+		assert.NoError(t, err)
+
+		w, err := client.GetWorker(context.Background(), workers[0].ID)
+		assert.NoError(t, err)
+		assert.Equal(t, timestr, w.Timestamp)
+	})
+
+	t.Run("UpdateWorkerTimestamp", func(t *testing.T) {
+		err := client.UpdateWorkerTimestamp(context.Background(), workers[0].ID, "dead")
+		assert.NoError(t, err)
+
+		w, err := client.GetWorker(context.Background(), workers[0].ID)
+		assert.NoError(t, err)
+		assert.Equal(t, "dead", w.Status)
+	})
+
 	t.Run("DeleteWorker", func(t *testing.T) {
 		err := client.DeleteWorker(context.Background(), workers[0].ID)
 		assert.NoError(t, err)
@@ -116,10 +136,10 @@ func Test_Worker(t *testing.T) {
 func Test_Product(t *testing.T) {
 
 	var products []*etcd.Product = []*etcd.Product{
-		{ID: "test.goboolean.kor", Platform: "kis", Symbol: "goboolean", Worker: uuid.New().String(), Status: "onsubscribe"},
-		{ID: "test.goboolean.eng", Platform: "polygon", Symbol: "gofalse", Worker: uuid.New().String(), Status: "onsubscribe"},
-		{ID: "test.goboolean.jpn", Platform: "buycycle", Symbol: "gonil", Worker: uuid.New().String(), Status: "onsubscribe"},
-		{ID: "test.goboolean.chi", Platform: "kis", Symbol: "gotrue", Worker: uuid.New().String(), Status: "onsubscribe"},
+		{ID: "test.goboolean.kor", Platform: "kis",      Symbol: "goboolean", Type: "stock" },
+		{ID: "test.goboolean.eng", Platform: "polygon",  Symbol: "gofalse",   Type: "crypto"},
+		{ID: "test.goboolean.jpn", Platform: "buycycle", Symbol: "gonil",     Type: "option"},
+		{ID: "test.goboolean.chi", Platform: "kis",      Symbol: "gotrue",    Type: "future"},
 	}
 
 	t.Run("InsertProducts", func(t *testing.T) {
@@ -133,24 +153,6 @@ func Test_Product(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, p, product)
 		}
-	})
-
-	t.Run("UpdateProductStatus", func(t *testing.T) {
-		err := client.UpdateProductStatus(context.Background(), products[0].ID, "notsubscribed")
-		assert.NoError(t, err)
-
-		p, err := client.GetProduct(context.Background(), products[0].ID)
-		assert.NoError(t, err)
-		assert.Equal(t, "notsubscribed", p.Status)
-	})
-
-	t.Run("UpdateProductWorker", func(t *testing.T) {
-		err := client.UpdateProductWorker(context.Background(), products[1].ID, uuid.New().String())
-		assert.NoError(t, err)
-
-		p, err := client.GetProduct(context.Background(), products[1].ID)
-		assert.NoError(t, err)
-		assert.NotEqual(t, products[0].Worker, p.Worker)
 	})
 
 	t.Run("DeleteProduct", func(t *testing.T) {
