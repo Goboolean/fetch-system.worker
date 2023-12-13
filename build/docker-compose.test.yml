@@ -1,19 +1,16 @@
 services:
   server:
+    container_name: fetch-server
     build:
       context: ../
       dockerfile: ./build/Dockerfile.test
-    depends_on:
-      - etcd
-    environment:
-      - ETCD_HOST=etcd:2379
-      - ETCD_PEER_HOST=etcd:2380
-    env_file:
-      - .env
+    ports:
+      - "9200:9200"
 
   etcd:
     image: bitnami/etcd:latest
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
     ports:
-      - "2379"
+      - "2379:2379"
+      - "2380:2380"
