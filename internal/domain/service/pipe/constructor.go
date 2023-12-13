@@ -2,7 +2,6 @@ package pipe
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -22,6 +21,7 @@ const (
 const (
 	defaultBufferSize = 500000
 	defaultBufferKeepTime = 100 * time.Second
+	defaultBufferSleepTime = 10 * time.Millisecond
 )
 
 
@@ -38,7 +38,7 @@ type Manager struct {
 	temp   chan *vo.Trade
 	arbiter *chan *vo.Trade
 
-	bufferSignal bool
+	bufferSignal chan struct{}
 	wg sync.WaitGroup
 }
 
@@ -49,9 +49,9 @@ func New(f out.DataFetcher, d out.DataDispatcher) *Manager {
 		buffer: make(chan *vo.Trade, defaultBufferSize),
 		temp: make(chan *vo.Trade),
 		output: make(chan *vo.Trade),
+		bufferSignal: make(chan struct{}),
 	}
 	instance.arbiter = &instance.temp
-	fmt.Println("arbiter initial: ", *instance.arbiter)
 	return instance
 }
 
@@ -81,20 +81,22 @@ func (m *Manager) runBufferEmpty() {
 	defer m.wg.Done()
 
 	for v := range m.buffer {
-		if m.bufferSignal {
-			return
-		}
+		if time.Now().Sub(v.Timestamp) < defaultBufferKeepTime {
+			timer := time.NewTimer(defaultBufferKeepTime - time.Now().Sub(v.Timestamp))
 
-		if time.Now().Sub(v.Timestamp) > defaultBufferKeepTime {
-			time.Sleep(time.Second)
-			continue
+			select {
+			case <- timer.C:
+				continue
+			case <- m.bufferSignal:
+				return
+			}
 		}
 	}
 }
 
 func (m *Manager) cancelBufferEmpty() {
-	m.bufferSignal = true
-	m.wg.Done()
+	m.bufferSignal <- struct{}{}
+	m.wg.Wait()
 }
 
 
@@ -116,8 +118,6 @@ func (m *Manager) RunStreamingPipe(ctx context.Context, products []*vo.Product) 
 		return err
 	}
 	m.arbiter = &m.output
-	fmt.Println("arbiter runstreamingpipe: ", *m.arbiter)
-
 	return nil
 }
 
@@ -129,7 +129,7 @@ func (m *Manager) RunStoringPipe(ctx context.Context, products []*vo.Product) er
 		return err
 	}
 	m.arbiter = &m.buffer
-	m.runBufferEmpty()
+	go m.runBufferEmpty()
 	return nil
 }
 
@@ -137,11 +137,11 @@ func (m *Manager) UpgradeToStreamingPipe(timestamp time.Time) {
 	m.arbiter = &m.temp
 	m.cancelBufferEmpty()
 
-	for i := 0; i < len(m.buffer); i++ {
-		m.output <- <- m.buffer
+	size := len(m.buffer)
+	for i := 0; i < size; i++ {
+		v := <- m.buffer
+		m.output <- v
 	}
-
-	fmt.Println(len(m.temp))
 	m.arbiter = &m.output
 }
 
@@ -151,6 +151,5 @@ func (m *Manager) LockupPipe(timestamp time.Time) {
 	go func() {
 		<- timer.C
 		m.arbiter = &m.temp
-		fmt.Println("switched??", *m.arbiter)
 	}()
 }
