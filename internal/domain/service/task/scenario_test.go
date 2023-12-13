@@ -12,7 +12,7 @@ import (
 
 
 
-func TestTTLFailed(t *testing.T) {
+func TestShutdownError(t *testing.T) {
 	w1 := vo.Worker{
 		ID: "first",
 		Platform: vo.PlatformKIS,
@@ -56,11 +56,13 @@ func TestTTLFailed(t *testing.T) {
 		err := m1.Shutdown()
 		assert.NoError(t, err)
 
+		etcdStub.(*adapter.ETCDStub).CreateShutdownEvent(ctx)
+
 		time.Sleep(1 * time.Millisecond)
 
-		_time, err := etcdStub.(*adapter.ETCDStub).GetWorkerTimestamp(context.Background(), w1.ID)
+		_time, err := etcdStub.GetWorkerTimestamp(ctx, w1.ID)
 		assert.NoError(t, err)
-		assert.Greater(t, _time.Unix(), time.Now().Unix())
+		assert.Greater(t, _time, time.Now())
 
 		w1, err := etcdStub.GetWorker(ctx, w1.ID)
 		assert.NoError(t, err)
@@ -70,4 +72,65 @@ func TestTTLFailed(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, vo.WorkerStatusPrimary, w2.Status)
 	})
+}
+
+
+
+func TestTTLFailed(t *testing.T) {
+	w1 := vo.Worker{
+		ID: "first",
+		Platform: vo.PlatformKIS,
+	}
+
+	w2 := vo.Worker{
+		ID: "second",
+		Platform: vo.PlatformKIS,
+	}
+
+	m1 := SetupTaskManager(&w1)
+	m2 := SetupTaskManager(&w2)
+
+	t.Cleanup(func() {
+		etcdStub.(*adapter.ETCDStub).DeleteAllWorkers(context.Background())
+	})
+
+	t.Run("RegisterPrimary", func(t *testing.T) {
+		err := m1.RegisterWorker(context.Background())
+		assert.NoError(t, err)
+
+		w, err := etcdStub.GetWorker(context.Background(), w1.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, w.Status, vo.WorkerStatusPrimary)
+	})
+
+	t.Run("RegisterSecondary", func(t *testing.T) {
+		err := m2.RegisterWorker(context.Background())
+		assert.NoError(t, err)
+
+		w, err := etcdStub.GetWorker(context.Background(), w2.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, w.Status, vo.WorkerStatusSecondary)
+	})
+
+	t.Run("TTLFailed", func(t *testing.T) {
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
+		defer cancel()
+
+		etcdStub.(*adapter.ETCDStub).CreateTTLFailedEvent(ctx)
+
+		time.Sleep(1 * time.Millisecond)
+
+		_time, err := etcdStub.GetWorkerTimestamp(ctx, w1.ID)
+		assert.NoError(t, err)
+		assert.LessOrEqual(t, _time, time.Now())
+
+		w1, err := etcdStub.GetWorker(ctx, w1.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, vo.WorkerStatusExitedTTlFailed, w1.Status)
+
+		w2, err := etcdStub.GetWorker(ctx, w2.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, vo.WorkerStatusPrimary, w2.Status)
+	})	
 }

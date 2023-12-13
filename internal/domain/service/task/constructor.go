@@ -147,7 +147,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) Promote(ctx context.Context) error {
+func (m *Manager) Promote(ctx context.Context, _type PromotionType) error {
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
@@ -159,9 +159,19 @@ func (m *Manager) Promote(ctx context.Context) error {
 	}
 	defer mu.Unlock(ctx)
 
-	timestamp, err := m.s.GetWorkerTimestamp(ctx, m.primaryID)
-	if err != nil {
-		return errors.Wrap(err, "failed to get primary worker timestamp")
+	var timestamp time.Time
+
+	switch _type {
+		case TTLFailed:
+			timestamp = time.Now().Add(- time.Second * 5)
+			if err := m.s.UpdateWorkerStatusExited(ctx, m.primaryID, vo.WorkerStatusExitedTTlFailed, timestamp); err != nil {
+				return err
+			}
+		case Shutdown:
+			timestamp, err = m.s.GetWorkerTimestamp(ctx, m.primaryID)
+			if err != nil {
+				return errors.Wrap(err, "failed to get primary worker timestamp")
+			}
 	}
 
 	if err := m.p.UpgradeToStreamingPipe(ctx, timestamp); err != nil {
@@ -169,7 +179,6 @@ func (m *Manager) Promote(ctx context.Context) error {
 	}
 
 	m.worker.Status = vo.WorkerStatusPrimary
-	//m.primaryID = m.worker.ID
 	if err := m.s.UpdateWorkerStatus(ctx, m.worker.ID, vo.WorkerStatusPrimary); err != nil {
 		return errors.Wrap(err, "failed to update worker status: ")
 	}
@@ -198,6 +207,15 @@ func (m *Manager) Shutdown() error {
 }
 
 
+
+type PromotionType int
+
+const (
+	TTLFailed PromotionType = iota + 1
+	Shutdown
+)
+
+
 func (m *Manager) trackChan() {
 	m.wg.Add(1)
 	defer m.wg.Done()
@@ -208,11 +226,16 @@ func (m *Manager) trackChan() {
 				return
 			case _, ok := <- m.promCh:
 				if ok {
-					if err  := m.Promote(m.ctx); err != nil {
+					if err  := m.Promote(m.ctx, Shutdown); err != nil {
 						panic(err)
 					}
 				}
-			case <-m.ttlCh:
+			case _, ok := <-m.ttlCh:
+				if ok {
+					if err := m.Promote(m.ctx, TTLFailed); err != nil {
+						panic(err)
+					}
+				}
 				continue
 		}
 	}

@@ -31,9 +31,9 @@ func NewETCDStub() out.StorageHandler {
 		productList: make([]vo.Product, 0),
 		workerTimestamp: make(map[string]time.Time),
 
-		promCh: make(chan struct{}),
-		connCh: make(chan struct{}),
-		ttlCh:  make(chan struct{}),
+		promCh: make(chan struct{}, 1),
+		connCh: make(chan struct{}, 1),
+		ttlCh:  make(chan struct{}, 1),
 	}
 }
 
@@ -112,7 +112,6 @@ func (s *ETCDStub) UpdateWorkerStatusExited(ctx context.Context, workerId string
 	s.workerTimestamp[workerId] = timestamp
 	s.workerList[workerId] = worker
 
-	s.promCh <- struct{}{}
 	return nil
 }
 
@@ -126,7 +125,7 @@ func (s *ETCDStub) CreateConnection(ctx context.Context, workerId string) (chan 
 }
 
 func (s *ETCDStub) WatchConnectionEnds(ctx context.Context, workerId string) (chan struct{}, error) {
-	return s.connCh, nil
+	return s.ttlCh, nil
 }
 
 func (s *ETCDStub) WatchPromotion(ctx context.Context, workerId string) (chan struct{}, error) {
@@ -137,10 +136,12 @@ func (s *ETCDStub) GetAllProducts(ctx context.Context) ([]vo.Product, error) {
 	return s.productList, nil
 }
 
-func (s *ETCDStub) Shutdown(ctx context.Context) error {
-	s.connCh <- struct{}{}
+func (s *ETCDStub) CreateTTLFailedEvent(ctx context.Context) {
 	s.ttlCh <- struct{}{}
-	return nil
+}
+
+func (s *ETCDStub) CreateShutdownEvent(ctx context.Context) {
+	s.promCh <- struct{}{}
 }
 
 func (s *ETCDStub) DeleteAllWorkers(ctx context.Context) error {
