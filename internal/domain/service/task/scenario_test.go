@@ -23,8 +23,14 @@ func TestShutdownError(t *testing.T) {
 		Platform: vo.PlatformKIS,
 	}
 
+	w3 := vo.Worker{
+		ID: "third",
+		Platform: vo.PlatformKIS,
+	}
+
 	m1 := SetupTaskManager(&w1)
 	m2 := SetupTaskManager(&w2)
+	m3 := SetupTaskManager(&w3)
 
 	t.Cleanup(func() {
 		etcdStub.(*adapter.ETCDStub).DeleteAllWorkers(context.Background())
@@ -46,6 +52,13 @@ func TestShutdownError(t *testing.T) {
 		w, err := etcdStub.GetWorker(context.Background(), w2.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, w.Status, vo.WorkerStatusSecondary)
+
+		err = m3.RegisterWorker(context.Background())
+		assert.NoError(t, err)
+
+		w, err = etcdStub.GetWorker(context.Background(), w3.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, w.Status, vo.WorkerStatusSecondary)
 	})
 
 	t.Run("ShutdownOccuredOnPrimary", func(t *testing.T) {
@@ -57,7 +70,7 @@ func TestShutdownError(t *testing.T) {
 		assert.NoError(t, err)
 
 		etcdStub.(*adapter.ETCDStub).CreateShutdownEvent(ctx)
-
+		etcdStub.(*adapter.ETCDStub).CreateShutdownEvent(ctx)
 		time.Sleep(1 * time.Millisecond)
 
 		_time, err := etcdStub.GetWorkerTimestamp(ctx, w1.ID)
@@ -70,7 +83,11 @@ func TestShutdownError(t *testing.T) {
 
 		w2, err := etcdStub.GetWorker(ctx, w2.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, vo.WorkerStatusPrimary, w2.Status)
+		w3, err := etcdStub.GetWorker(ctx, w3.ID)
+		assert.NoError(t, err)
+
+		assert.True(t, w2.Status == vo.WorkerStatusPrimary   || w3.Status == vo.WorkerStatusPrimary)
+		assert.True(t, w2.Status == vo.WorkerStatusSecondary || w3.Status == vo.WorkerStatusSecondary)
 	})
 }
 
@@ -87,8 +104,14 @@ func TestTTLFailed(t *testing.T) {
 		Platform: vo.PlatformKIS,
 	}
 
+	w3 := vo.Worker{
+		ID: "third",
+		Platform: vo.PlatformKIS,
+	}
+
 	m1 := SetupTaskManager(&w1)
 	m2 := SetupTaskManager(&w2)
+	m3 := SetupTaskManager(&w3)
 
 	t.Cleanup(func() {
 		etcdStub.(*adapter.ETCDStub).DeleteAllWorkers(context.Background())
@@ -110,6 +133,13 @@ func TestTTLFailed(t *testing.T) {
 		w, err := etcdStub.GetWorker(context.Background(), w2.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, w.Status, vo.WorkerStatusSecondary)
+
+		err = m3.RegisterWorker(context.Background())
+		assert.NoError(t, err)
+
+		w, err = etcdStub.GetWorker(context.Background(), w3.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, w.Status, vo.WorkerStatusSecondary)
 	})
 
 	t.Run("TTLFailed", func(t *testing.T) {
@@ -118,7 +148,8 @@ func TestTTLFailed(t *testing.T) {
 		defer cancel()
 
 		etcdStub.(*adapter.ETCDStub).CreateTTLFailedEvent(ctx)
-
+		time.Sleep(1 * time.Millisecond)
+		etcdStub.(*adapter.ETCDStub).CreateTTLFailedEvent(ctx)
 		time.Sleep(1 * time.Millisecond)
 
 		_time, err := etcdStub.GetWorkerTimestamp(ctx, w1.ID)
@@ -131,6 +162,12 @@ func TestTTLFailed(t *testing.T) {
 
 		w2, err := etcdStub.GetWorker(ctx, w2.ID)
 		assert.NoError(t, err)
-		assert.Equal(t, vo.WorkerStatusPrimary, w2.Status)
+		w3, err := etcdStub.GetWorker(ctx, w3.ID)
+		assert.NoError(t, err)
+
+		t.Log(w2.Status, w3.Status)
+
+		assert.True(t, w2.Status == vo.WorkerStatusPrimary   || w3.Status == vo.WorkerStatusPrimary)
+		assert.True(t, w2.Status == vo.WorkerStatusSecondary || w3.Status == vo.WorkerStatusSecondary)
 	})	
 }

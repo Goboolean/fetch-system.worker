@@ -41,6 +41,7 @@ type StorageHandler interface {
 	GetAllWorker(ctx context.Context) ([]vo.Worker, error)
 	GetWorker(ctx context.Context, workerID string) (*vo.Worker, error)
 	GetWorkerTimestamp(ctx context.Context, workerID string) (time.Time, error)
+	GetWorkerStatus(ctx context.Context, workerID string) (vo.WorkerStatus, error)
 	RegisterWorker(ctx context.Context, worker vo.Worker) error
 	UpdateWorkerStatus(ctx context.Context, workerId string, status vo.WorkerStatus) error
 	UpdateWorkerStatusExited(ctx context.Context, workerId string, status vo.WorkerStatus, timestamp time.Time) error

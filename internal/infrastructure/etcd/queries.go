@@ -65,6 +65,16 @@ func (c *Client) GetWorkerTimestamp(ctx context.Context, id string) (string, err
 	return string(resp.Kvs[0].Value), nil
 }
 
+func (c *Client) GetWorkerStatus(ctx context.Context, id string) (string, error) {
+	resp, err := c.client.Get(ctx, etcdutil.Field("worker", id, "status"))
+	if err != nil {
+		return "", err
+	}
+	if len(resp.Kvs) == 0 {
+		return "", ErrWorkerNotExists
+	}
+	return string(resp.Kvs[0].Value), nil
+}
 
 func (c *Client) DeleteWorker(ctx context.Context, id string) error {
 	_, err := c.client.Delete(context.Background(), etcdutil.Identifier("worker", id), clientv3.WithPrefix())

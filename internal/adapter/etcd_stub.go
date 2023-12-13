@@ -52,7 +52,7 @@ func (s *MutexStup) Unlock(ctx context.Context) error {
 }
 
 func (s *MutexStup) TryLock(ctx context.Context) error {
-	if flag := s.m.TryLock(); flag {
+	if flag := s.m.TryLock(); !flag {
 		return fmt.Errorf("failed to lock")
 	}
 	return nil
@@ -88,9 +88,17 @@ func (s *ETCDStub) GetWorker(ctx context.Context, workerID string) (*vo.Worker, 
 func (s *ETCDStub) GetWorkerTimestamp(ctx context.Context, workerID string) (time.Time, error) {
 	timestamp, ok := s.workerTimestamp[workerID]
 	if !ok {
-		return time.Time{}, fmt.Errorf("worker not found%s", workerID)
+		return time.Time{}, fmt.Errorf("worker not found")
 	}
 	return timestamp, nil
+}
+
+func (s *ETCDStub) GetWorkerStatus(ctx context.Context, workerID string) (vo.WorkerStatus, error) {
+	worker, ok := s.workerList[workerID]
+	if !ok {
+		return vo.WorkerStatus(""), fmt.Errorf("worker not found")
+	}
+	return worker.Status, nil
 }
 
 func (s *ETCDStub) UpdateWorkerStatus(ctx context.Context, workerId string, status vo.WorkerStatus) error {

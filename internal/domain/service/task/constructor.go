@@ -60,6 +60,16 @@ func New(worker *vo.Worker, s out.StorageHandler, p *pipe.Manager) (*Manager, er
 }
 
 
+func (m *Manager) hasPrimary(workers []vo.Worker) (bool, string) {
+	for _, worker := range workers {
+		if worker.Status == vo.WorkerStatusPrimary {
+			return true, worker.ID
+		}
+	}
+	return false, ""
+}
+
+
 
 func (m *Manager) RegisterWorker(ctx context.Context) error {
 
@@ -78,15 +88,8 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		return err
 	}
 
-	var isSecondary = false
-
-	for _, worker := range workers {
-		if worker.Platform == m.worker.Platform && worker.Status == vo.WorkerStatusPrimary {
-			isSecondary = true
-			m.primaryID = worker.ID
-			break
-		}
-	}
+	var isSecondary bool
+	isSecondary, m.primaryID = m.hasPrimary(workers)
 
 	if isSecondary {
 		m.worker.Status = vo.WorkerStatusSecondary
@@ -114,7 +117,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		return product.Platform == m.worker.Platform
 	}).ToSlice(&productsFiltered)
 
-	m.s.WatchConnectionEnds(ctx, m.worker.ID)
+	m.s.CreateConnection(ctx, m.worker.ID)
 
 	var pipeErr error
 	if !isSecondary {
@@ -138,6 +141,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
 		m.ttlCh, err = m.s.WatchConnectionEnds(ctx, m.primaryID)
 		if err != nil {
 			return err
@@ -147,15 +151,14 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) Promote(ctx context.Context, _type PromotionType) error {
+func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, error) {
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
-		return err
+		return false, err
 	}
-
-	if err := mu.Lock(ctx); err != nil {
-		return err
+	if err := mu.TryLock(ctx); err != nil {
+		return false, nil
 	}
 	defer mu.Unlock(ctx)
 
@@ -163,29 +166,51 @@ func (m *Manager) Promote(ctx context.Context, _type PromotionType) error {
 
 	switch _type {
 		case TTLFailed:
+
+			status, err := m.s.GetWorkerStatus(ctx, m.primaryID)
+			if err != nil {
+				return false, err
+			}
+			if status == vo.WorkerStatusExitedTTlFailed {
+				return false, nil
+			}
+
 			timestamp = time.Now().Add(- time.Second * 5)
 			if err := m.s.UpdateWorkerStatusExited(ctx, m.primaryID, vo.WorkerStatusExitedTTlFailed, timestamp); err != nil {
-				return err
+				fmt.Println("TTLFailed UpdateWorkerStatusExited")
+				return false, err
 			}
+
 		case Shutdown:
+			workers, err := m.s.GetAllWorker(ctx)
+			if err != nil {
+				return false, err
+			}
+
+			hasPrimary, primaryID := m.hasPrimary(workers)
+			if hasPrimary {
+				m.primaryID = primaryID
+				return false, nil
+			}
+
 			timestamp, err = m.s.GetWorkerTimestamp(ctx, m.primaryID)
 			if err != nil {
-				return errors.Wrap(err, "failed to get primary worker timestamp")
+				return false, err
 			}
 	}
 
 	if err := m.p.UpgradeToStreamingPipe(ctx, timestamp); err != nil {
-		return err
+		return false, err
 	}
 
 	m.worker.Status = vo.WorkerStatusPrimary
 	if err := m.s.UpdateWorkerStatus(ctx, m.worker.ID, vo.WorkerStatusPrimary); err != nil {
-		return errors.Wrap(err, "failed to update worker status: ")
+		return false, err
 	}
 
 	close(m.connCh)
 	close(m.promCh)
-	return nil
+	return true, nil
 }
 
 
@@ -226,14 +251,22 @@ func (m *Manager) trackChan() {
 				return
 			case _, ok := <- m.promCh:
 				if ok {
-					if err  := m.Promote(m.ctx, Shutdown); err != nil {
+					success, err := m.tryPromotion(m.ctx, Shutdown)
+					if err != nil {
 						panic(err)
+					}
+					if success {
+						return
 					}
 				}
 			case _, ok := <-m.ttlCh:
 				if ok {
-					if err := m.Promote(m.ctx, TTLFailed); err != nil {
+					success, err := m.tryPromotion(m.ctx, TTLFailed)
+					if err != nil {
 						panic(err)
+					}
+					if success {
+						return
 					}
 				}
 				continue
