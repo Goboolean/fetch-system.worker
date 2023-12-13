@@ -2,63 +2,18 @@ package etcd_test
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
 	_ "github.com/Goboolean/common/pkg/env"
-	"github.com/Goboolean/common/pkg/resolver"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
-var client *etcd.Client
 
-func Setup() *etcd.Client {
-	c, err := etcd.New(&resolver.ConfigMap{
-		"HOST":      os.Getenv("ETCD_HOST"),
-		"PEER_HOST": os.Getenv("ETCD_PEER_HOST"),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	return c
-}
-
-func Teardown(c *etcd.Client) {
-	if err := c.Cleanup(); err != nil {
-		panic(err)
-	}
-	if err := c.Close(); err != nil {
-		panic(err)
-	}
-}
-
-func TestMain(m *testing.M) {
-	client = Setup()
-
-	log.SetLevel(log.TraceLevel)
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: false,
-	})
-
-	code := m.Run()
-	Teardown(client)
-
-	os.Exit(code)
-}
-
-func Test_Constructor(t *testing.T) {
-	t.Run("Ping", func(t *testing.T) {
-		err := client.Ping(context.Background())
-		assert.NoError(t, err)
-	})
-}
 
 func Test_Worker(t *testing.T) {
 
