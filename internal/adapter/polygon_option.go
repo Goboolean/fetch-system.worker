@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"time"
 
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
@@ -19,9 +20,9 @@ func NewOptionPolygonAdapter(c *polygon.OptionClient) (out.DataFetcher, error) {
 	}, nil
 }
 
-func (a *OptionPolygonAdapter) Subscribe(symbol ...string) (<-chan vo.Trade, error) {
+func (a *OptionPolygonAdapter) InputStream(ctx context.Context, symbol ...string) (<-chan *vo.Trade, error) {
 	
-	ch := make(chan vo.Trade)
+	ch := make(chan *vo.Trade)
 
 	polyonCh, err := a.c.Subscribe()
 	if err != nil {
@@ -30,7 +31,7 @@ func (a *OptionPolygonAdapter) Subscribe(symbol ...string) (<-chan vo.Trade, err
 
 	go func() {
 		for v := range polyonCh {
-			ch <- vo.Trade{
+			ch <- &vo.Trade{
 				ID: v.Symbol,
 				TradeDetail: vo.TradeDetail{
 					Price: v.Price,
