@@ -5,13 +5,15 @@ package vo
 type WorkerStatus string
 
 const (
-	WorkerStatusPrimary              WorkerStatus = "Primary"
-	WorkerStatusSecondary            WorkerStatus = "Secondary"
-	WorkerStatusExited               WorkerStatus = "Exited"
-	WorkerStatusExitedTTlFailed      WorkerStatus = "ExitedTtlFailed"
-	WorkerStatusExitedRegisterFailed WorkerStatus = "ExitedRegisterFailed"
-	WorkerStatusExitedUnknownError   WorkerStatus = "ExitedUnknownError"
-	WorkerStatusUnknown              WorkerStatus = "Unknown"
+	WorkerStatusPrimary               WorkerStatus = "Primary"
+	WorkerStatusSecondary             WorkerStatus = "Secondary"
+	WorkerStatusExited                WorkerStatus = "Exited"
+
+	WorkerStatusExitedShutdownOccured WorkerStatus = "ExitedShutdownOccured"
+	WorkerStatusExitedTTlFailed       WorkerStatus = "ExitedTtlFailed"
+	WorkerStatusExitedRegisterFailed  WorkerStatus = "ExitedRegisterFailed"
+	WorkerStatusExitedUnknownError    WorkerStatus = "ExitedUnknownError"
+	WorkerStatusUnknown               WorkerStatus = "Unknown"
 )
 
 

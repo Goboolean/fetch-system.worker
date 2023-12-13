@@ -47,10 +47,15 @@ func New(worker *vo.Worker, s out.StorageHandler, p *pipe.Manager) (*Manager, er
 		return nil, fmt.Errorf("worker platform is empty")
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &Manager{
 		s: s,
 		p: p,
 		worker: worker,
+
+		ctx: ctx,
+		cancel: cancel,
 	}, nil
 }
 
@@ -126,6 +131,9 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	}
 
 	if isSecondary {
+
+		go m.trackChan()
+
 		m.promCh, err = m.s.WatchPromotion(ctx, m.primaryID)
 		if err != nil {
 			return err
@@ -139,7 +147,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	return nil
 }
 
-func (m *Manager) Promote(ctx context.Context, timestamp time.Time) error {
+func (m *Manager) Promote(ctx context.Context) error {
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
@@ -151,20 +159,27 @@ func (m *Manager) Promote(ctx context.Context, timestamp time.Time) error {
 	}
 	defer mu.Unlock(ctx)
 
+	timestamp, err := m.s.GetWorkerTimestamp(ctx, m.primaryID)
+	if err != nil {
+		return errors.Wrap(err, "failed to get primary worker timestamp")
+	}
+
 	if err := m.p.UpgradeToStreamingPipe(ctx, timestamp); err != nil {
 		return err
 	}
 
 	m.worker.Status = vo.WorkerStatusPrimary
-	m.primaryID = m.worker.ID
+	//m.primaryID = m.worker.ID
 	if err := m.s.UpdateWorkerStatus(ctx, m.worker.ID, vo.WorkerStatusPrimary); err != nil {
-		return err
+		return errors.Wrap(err, "failed to update worker status: ")
 	}
 
 	close(m.connCh)
 	close(m.promCh)
 	return nil
 }
+
+
 
 func (m *Manager) Shutdown() error {
 
@@ -174,10 +189,31 @@ func (m *Manager) Shutdown() error {
 		m.p.LockUpStoringPipe(m.ctx, timestamp)
 	}
 
-	if err := m.s.UpdateWorkerStatusExited(m.ctx, m.worker.ID, vo.WorkerStatusExited, timestamp); err != nil {
-		return err	
+	if err := m.s.UpdateWorkerStatusExited(m.ctx, m.worker.ID, vo.WorkerStatusExitedShutdownOccured, timestamp); err != nil {
+		return err
 	}
 
 	m.cancel()
 	return nil
+}
+
+
+func (m *Manager) trackChan() {
+	m.wg.Add(1)
+	defer m.wg.Done()
+
+	for {
+		select {
+			case <-m.ctx.Done():
+				return
+			case _, ok := <- m.promCh:
+				if ok {
+					if err  := m.Promote(m.ctx); err != nil {
+						panic(err)
+					}
+				}
+			case <-m.ttlCh:
+				continue
+		}
+	}
 }

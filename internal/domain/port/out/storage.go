@@ -37,13 +37,14 @@ func (mu MutexKey) String() string {
 
 type StorageHandler interface {
 	Mutex(ctx context.Context, key MutexKey) (Mutex, error)
+	GetAllProducts(ctx context.Context) ([]vo.Product, error)
 	GetAllWorker(ctx context.Context) ([]vo.Worker, error)
+	GetWorker(ctx context.Context, workerID string) (*vo.Worker, error)
+	GetWorkerTimestamp(ctx context.Context, workerID string) (time.Time, error)
 	RegisterWorker(ctx context.Context, worker vo.Worker) error
 	UpdateWorkerStatus(ctx context.Context, workerId string, status vo.WorkerStatus) error
 	UpdateWorkerStatusExited(ctx context.Context, workerId string, status vo.WorkerStatus, timestamp time.Time) error
-	DeleteWorker(ctx context.Context, workerId string) error
 	CreateConnection(ctx context.Context, workerId string) (chan struct{}, error)
 	WatchConnectionEnds(ctx context.Context, workerId string) (chan struct{}, error)
 	WatchPromotion(ctx context.Context, workerId string) (chan struct{}, error)
-	GetAllProducts(ctx context.Context) ([]vo.Product, error)
 }
