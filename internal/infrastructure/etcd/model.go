@@ -6,7 +6,7 @@ type Worker struct {
 	ID       string `etcd:"id"`        // uuid format
 	Platform string `etcd:"platform"`  // kis, polygon, buycycle, ...
 	Status   string `etcd:"status"`    // active, waiting, dead
-	Timestamp string `etcd:"timestamp"`// 
+	LeaseID  string  `etcd:"lease_id"`  // lease id
 }
 
 func (w *Worker) Name() string {

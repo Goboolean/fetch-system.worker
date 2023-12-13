@@ -74,6 +74,12 @@ func Test_Worker(t *testing.T) {
 			err := client.InsertWorker(context.Background(), w)
 			assert.NoError(t, err)
 		}
+
+		for _, w := range workers {
+			exists, err := client.WorkerExists(context.Background(), w.ID)
+			assert.NoError(t, err)
+			assert.True(t, exists)
+		}
 	})
 
 	t.Run("InsertWorkerAlreadyExists", func(t *testing.T) {
@@ -98,40 +104,29 @@ func Test_Worker(t *testing.T) {
 		assert.Equal(t, "dead", w.Status)
 	})
 
-	t.Run("UpdateWorkerStatus", func(t *testing.T) {
-		var timestr = time.Now().String()
-
-		err := client.UpdateWorkerStatus(context.Background(), workers[0].ID, timestr)
-		assert.NoError(t, err)
-
-		w, err := client.GetWorker(context.Background(), workers[0].ID)
-		assert.NoError(t, err)
-		assert.Equal(t, timestr, w.Timestamp)
-	})
-
-	t.Run("UpdateWorkerTimestamp", func(t *testing.T) {
-		err := client.UpdateWorkerTimestamp(context.Background(), workers[0].ID, "dead")
-		assert.NoError(t, err)
-
-		w, err := client.GetWorker(context.Background(), workers[0].ID)
-		assert.NoError(t, err)
-		assert.Equal(t, "dead", w.Status)
-	})
-
 	t.Run("DeleteWorker", func(t *testing.T) {
 		err := client.DeleteWorker(context.Background(), workers[0].ID)
 		assert.NoError(t, err)
 
 		_, err = client.GetWorker(context.Background(), workers[0].ID)
 		assert.Error(t, err)
+
+		workers, err := client.GetAllWorkers(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, len(workers)-1, len(workers))
 	})
 
-	t.Run("GetAllWorkers", func(t *testing.T) {
-		ws, err := client.GetAllWorkers(context.Background())
+	t.Run("DeleteAllWorkers", func(t *testing.T) {
+		err := client.DeleteAllWorkers(context.Background())
 		assert.NoError(t, err)
-		assert.Equal(t, len(workers)-1, len(ws))
+
+		workers, err := client.GetAllWorkers(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, 0, len(workers))
 	})
 }
+
+
 
 func Test_Product(t *testing.T) {
 

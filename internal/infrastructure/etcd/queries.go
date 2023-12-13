@@ -59,6 +59,19 @@ func (c *Client) DeleteWorker(ctx context.Context, id string) error {
 	return err
 }
 
+func (c *Client) DeleteAllWorkers(ctx context.Context) error {
+	_, err := c.client.Delete(context.Background(), etcdutil.Group("worker"), clientv3.WithPrefix())
+	return err
+}
+
+func (c *Client) WorkerExists(ctx context.Context, id string) (bool, error) {
+	resp, err := c.client.Get(ctx, etcdutil.Identifier("worker", id), clientv3.WithPrefix())
+	if err != nil {
+		return false, err
+	}
+	return len(resp.Kvs) != 0, nil
+}
+
 func (c *Client) GetAllWorkers(ctx context.Context) ([]*Worker, error) {
 
 	resp, err := c.client.Get(context.Background(), etcdutil.Group("worker"), clientv3.WithPrefix())
@@ -88,23 +101,31 @@ func (c *Client) UpdateWorkerStatus(ctx context.Context, id string, status strin
 	return err
 }
 
-func (c *Client) UpdateWorkerTimestamp(ctx context.Context, id string, timestamp string) error {
-	_, err := c.client.Put(context.Background(), etcdutil.Field("worker", id, "timestamp"), timestamp)
-	return err
-}
+func (c *Client) UpdateWorkerStatusExited(ctx context.Context, id string, status string, timestamp string) error {
+	_, err := c.client.Txn(ctx).
+		Then([]clientv3.Op{
+			clientv3.OpPut(etcdutil.Field("worker", id, "status"),    status),
+			clientv3.OpPut(etcdutil.Field("worker", id, "timestamp"), timestamp),
+		}...).
+		Commit()
+	if err != nil {
+		return err
+	}
 
+	return nil
+}
 
 func (c *Client) InsertOneProduct(ctx context.Context, p *Product) error {
 	payload, err := etcdutil.Serialize(p)
 
-	var conditions []clientv3.Cmp
-	for k := range payload {
-		conditions = append(conditions, clientv3.Compare(clientv3.Version(k), "=", 0))
-	}
-
 	var ops []clientv3.Op
 	for k, v := range payload {
 		ops = append(ops, clientv3.OpPut(k, v))
+	}
+
+	var conditions []clientv3.Cmp
+	for k := range payload {
+		conditions = append(conditions, clientv3.Compare(clientv3.Version(k), "=", 0))
 	}
 
 	resp, err := c.client.Txn(ctx).

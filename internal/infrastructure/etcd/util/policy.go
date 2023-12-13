@@ -2,8 +2,6 @@ package etcdutil
 
 // ETCD UTIL POLICY DOCUMENT
 
-
-
 // Policy for etcd object:
 
 // A. etcd key format
