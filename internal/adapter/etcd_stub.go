@@ -17,14 +17,17 @@ import (
 type ETCDStub struct {
 	m sync.Mutex
 
-	workerList []vo.Worker
+	workerList map[string]vo.Worker
 	productList []vo.Product
 
 	workerTimestamp map[string]time.Time
 }
 
 func NewETCDStub() out.StorageHandler {
-	return &ETCDStub{}
+	return &ETCDStub{
+		workerList: make(map[string]vo.Worker),
+		productList: make([]vo.Product, 0),
+	}
 }
 
 type MutexStup struct {
@@ -55,43 +58,50 @@ func (s *ETCDStub) Mutex(ctx context.Context, key out.MutexKey) (out.Mutex, erro
 }
 
 func (s *ETCDStub) GetAllWorker(ctx context.Context) ([]vo.Worker, error) {
-	return s.workerList, nil
+	workers := make([]vo.Worker, 0)
+	for _, worker := range s.workerList {
+		workers = append(workers, worker)
+	}
+	return workers, nil
 }
 
 func (s *ETCDStub) RegisterWorker(ctx context.Context, worker vo.Worker) error {
-	s.workerList = append(s.workerList, worker)
+	s.workerList[worker.ID] = worker
 	return nil
 }
 
-func (s *ETCDStub) UpdateWorkerStatus(ctx context.Context, workerId string, status vo.WorkerStatus) error {
-	for worker := range s.workerList {
-		if s.workerList[worker].ID == workerId {
-			s.workerList[worker].Status = status
-			return nil
-		}
+func (s *ETCDStub) GetWorker(ctx context.Context, workerID string) (*vo.Worker, error) {
+	worker, ok := s.workerList[workerID]
+	if !ok {
+		return nil, fmt.Errorf("worker not found")
 	}
-	return fmt.Errorf("worker not found")
+	return &worker, nil
+}
+
+func (s *ETCDStub) UpdateWorkerStatus(ctx context.Context, workerId string, status vo.WorkerStatus) error {
+	worker, ok := s.workerList[workerId]
+	if ok {
+		return fmt.Errorf("worker not found")
+	}
+	worker.Status = status
+	s.workerList[workerId] = worker
+	return nil	
 }
 
 func (s *ETCDStub) UpdateWorkerStatusExited(ctx context.Context, workerId string, status vo.WorkerStatus, timestamp time.Time) error {
-	for worker := range s.workerList {
-		if s.workerList[worker].ID == workerId {
-			s.workerList[worker].Status = status
-			s.workerTimestamp[workerId] = timestamp
-			return nil
-		}
+	worker, ok := s.workerList[workerId]
+	if ok {
+		return fmt.Errorf("worker not found")
 	}
-	return fmt.Errorf("worker not found")
+	worker.Status = status
+	s.workerTimestamp[workerId] = timestamp
+	s.workerList[workerId] = worker
+	return nil
 }
 
 func (s *ETCDStub) DeleteWorker(ctx context.Context, workerId string) error {
-	for worker := range s.workerList {
-		if s.workerList[worker].ID == workerId {
-			s.workerList = append(s.workerList[:worker], s.workerList[worker+1:]...)
-			return nil
-		}
-	}
-	return fmt.Errorf("worker not found")
+	delete(s.workerList, workerId)
+	return nil
 }
 
 func (s *ETCDStub) CreateConnection(ctx context.Context, workerId string) (chan struct{}, error) {

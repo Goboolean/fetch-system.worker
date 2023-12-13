@@ -24,7 +24,8 @@ type Manager struct {
 	s out.StorageHandler
 	p *pipe.Manager
 
-	worker vo.Worker
+	worker *vo.Worker
+	primaryID string
 
 	connCh chan struct{}
 	promCh chan struct{}
@@ -37,7 +38,7 @@ type Manager struct {
 
 
 
-func New(worker vo.Worker, s out.StorageHandler, p *pipe.Manager) (*Manager, error) {
+func New(worker *vo.Worker, s out.StorageHandler, p *pipe.Manager) (*Manager, error) {
 	if worker.ID == "" {
 		return nil, fmt.Errorf("worker id is empty")
 	}
@@ -72,21 +73,20 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		return err
 	}
 
-	var isSecondary = true
-	var primaryId = ""
+	var isSecondary = false
 
 	for _, worker := range workers {
 		if worker.Platform == m.worker.Platform && worker.Status == vo.WorkerStatusPrimary {
-			isSecondary = false
-			primaryId = worker.ID
+			isSecondary = true
+			m.primaryID = worker.ID
 			break
 		}
 	}
 
-	if !isSecondary {
-		m.worker.Status = vo.WorkerStatusPrimary
-	} else {
+	if isSecondary {
 		m.worker.Status = vo.WorkerStatusSecondary
+	} else {
+		m.worker.Status = vo.WorkerStatusPrimary
 	}
 
 	connCh, err := m.s.CreateConnection(ctx, m.worker.ID)
@@ -95,7 +95,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	}
 	m.connCh = connCh
 
-	if err := m.s.RegisterWorker(ctx, m.worker); err != nil {
+	if err := m.s.RegisterWorker(ctx, *m.worker); err != nil {
 		return err
 	}
 
@@ -126,15 +126,58 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	}
 
 	if isSecondary {
-		m.promCh, err = m.s.WatchPromotion(ctx, primaryId)
+		m.promCh, err = m.s.WatchPromotion(ctx, m.primaryID)
 		if err != nil {
 			return err
 		}
-		m.ttlCh, err = m.s.WatchConnectionEnds(ctx, primaryId)
+		m.ttlCh, err = m.s.WatchConnectionEnds(ctx, m.primaryID)
 		if err != nil {
 			return err
 		}		
 	}
 
+	return nil
+}
+
+func (m *Manager) Promote(ctx context.Context, timestamp time.Time) error {
+
+	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
+	if err != nil {
+		return err
+	}
+
+	if err := mu.Lock(ctx); err != nil {
+		return err
+	}
+	defer mu.Unlock(ctx)
+
+	if err := m.p.UpgradeToStreamingPipe(ctx, timestamp); err != nil {
+		return err
+	}
+
+	m.worker.Status = vo.WorkerStatusPrimary
+	m.primaryID = m.worker.ID
+	if err := m.s.UpdateWorkerStatus(ctx, m.worker.ID, vo.WorkerStatusPrimary); err != nil {
+		return err
+	}
+
+	close(m.connCh)
+	close(m.promCh)
+	return nil
+}
+
+func (m *Manager) Shutdown() error {
+
+	var timestamp = time.Now().Truncate(time.Second).Add(time.Second)
+
+	if m.worker.Status == vo.WorkerStatusPrimary {
+		m.p.LockUpStoringPipe(m.ctx, timestamp)
+	}
+
+	if err := m.s.UpdateWorkerStatusExited(m.ctx, m.worker.ID, vo.WorkerStatusExited, timestamp); err != nil {
+		return err	
+	}
+
+	m.cancel()
 	return nil
 }
