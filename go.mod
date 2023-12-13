@@ -4,7 +4,9 @@ go 1.21.0
 
 require (
 	github.com/Goboolean/common v0.0.0-20231130153141-cb54596b217d
+	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/google/uuid v1.5.0
+	github.com/pkg/errors v0.9.1
 	github.com/polygon-io/client-go v1.16.1
 	github.com/stretchr/testify v1.8.4
 	go.etcd.io/etcd/client/v3 v3.5.11
