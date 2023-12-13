@@ -199,9 +199,7 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 			}
 	}
 
-	if err := m.p.UpgradeToStreamingPipe(ctx, timestamp); err != nil {
-		return false, err
-	}
+	m.p.UpgradeToStreamingPipe(timestamp)
 
 	m.worker.Status = vo.WorkerStatusPrimary
 	if err := m.s.UpdateWorkerStatus(ctx, m.worker.ID, vo.WorkerStatusPrimary); err != nil {
@@ -220,7 +218,7 @@ func (m *Manager) Shutdown() error {
 	var timestamp = time.Now().Truncate(time.Second).Add(time.Second)
 
 	if m.worker.Status == vo.WorkerStatusPrimary {
-		m.p.LockUpStoringPipe(m.ctx, timestamp)
+		m.p.LockupPipe(timestamp)
 	}
 
 	if err := m.s.UpdateWorkerStatusExited(m.ctx, m.worker.ID, vo.WorkerStatusExitedShutdownOccured, timestamp); err != nil {

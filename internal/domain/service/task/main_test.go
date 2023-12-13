@@ -15,7 +15,7 @@ import (
 var etcdStub = adapter.NewETCDStub()
 
 func SetupTaskManager(workerConfig *vo.Worker) in.TaskCommander {
-	m, err := task.New(workerConfig, etcdStub, pipe.New())
+	m, err := task.New(workerConfig, etcdStub, pipe.NewStub())
 	if err != nil {
 		panic(err)
 	}
