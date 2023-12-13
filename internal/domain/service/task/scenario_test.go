@@ -33,7 +33,10 @@ func TestShutdownError(t *testing.T) {
 	m3 := SetupTaskManager(&w3)
 
 	t.Cleanup(func() {
-		etcdStub.(*adapter.ETCDStub).DeleteAllWorkers(context.Background())
+		etcdStub.(*adapter.ETCDStub).Cleanup()
+		workers, err :=etcdStub.GetAllWorker(context.Background())
+		assert.NoError(t, err)
+		assert.Empty(t, workers)
 	})
 
 	t.Run("RegisterPrimary", func(t *testing.T) {
@@ -168,5 +171,5 @@ func TestTTLFailed(t *testing.T) {
 
 		assert.True(t, w2.Status == vo.WorkerStatusPrimary   || w3.Status == vo.WorkerStatusPrimary)
 		assert.True(t, w2.Status == vo.WorkerStatusSecondary || w3.Status == vo.WorkerStatusSecondary)
-	})	
+	})
 }

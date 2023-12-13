@@ -150,9 +150,21 @@ func (s *ETCDStub) CreateTTLFailedEvent(ctx context.Context) {
 
 func (s *ETCDStub) CreateShutdownEvent(ctx context.Context) {
 	s.promCh <- struct{}{}
+	s.promCh <- struct{}{}
 }
 
 func (s *ETCDStub) DeleteAllWorkers(ctx context.Context) error {
-	s.workerList = make(map[string]vo.Worker)
 	return nil
 }
+
+func (s *ETCDStub) Cleanup() {
+
+	s.workerList = make(map[string]vo.Worker)
+	s.productList = make([]vo.Product, 0)
+	s.workerTimestamp = make(map[string]time.Time)
+
+	s.promCh = make(chan struct{}, 1)
+	s.connCh = make(chan struct{}, 1)
+	s.ttlCh =  make(chan struct{}, 1)
+}
+
