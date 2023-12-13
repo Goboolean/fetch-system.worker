@@ -39,6 +39,7 @@ type Manager struct {
 	arbiter *chan *vo.Trade
 
 	bufferSignal chan struct{}
+	isBufferEmptyRunning bool
 	wg sync.WaitGroup
 }
 
@@ -55,8 +56,10 @@ func New(f out.DataFetcher, d out.DataDispatcher) *Manager {
 	return instance
 }
 
-func (m *Manager) Close(ctx context.Context) error {
-	return nil
+func (m *Manager) Close(ctx context.Context) {
+	if m.isBufferEmptyRunning {
+		m.cancelBufferEmpty()		
+	}
 }
 
 
@@ -78,7 +81,12 @@ func (m *Manager) connectInputPipe(ctx context.Context, products []*vo.Product) 
 
 func (m *Manager) runBufferEmpty() {
 	m.wg.Add(1)
-	defer m.wg.Done()
+	m.isBufferEmptyRunning = true
+
+	defer func () {
+		m.isBufferEmptyRunning = false
+		m.wg.Done()
+	}()
 
 	for v := range m.buffer {
 		if time.Now().Sub(v.Timestamp) < defaultBufferKeepTime {

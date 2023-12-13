@@ -22,7 +22,7 @@ var ConfigTimeout = 3 * time.Second
 
 type Manager struct {
 	s out.StorageHandler
-	p *pipe.Manager
+	p *pipe.Stub
 
 	worker *vo.Worker
 	primaryID string
@@ -38,7 +38,7 @@ type Manager struct {
 
 
 
-func New(worker *vo.Worker, s out.StorageHandler, p *pipe.Manager) (*Manager, error) {
+func New(worker *vo.Worker, s out.StorageHandler, p *pipe.Stub) (*Manager, error) {
 	if worker.ID == "" {
 		return nil, fmt.Errorf("worker id is empty")
 	}

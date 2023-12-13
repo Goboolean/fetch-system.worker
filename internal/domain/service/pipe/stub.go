@@ -12,8 +12,8 @@ import (
 
 type Stub struct {}
 
-func NewStub() *Manager {
-	return &Manager{}
+func NewStub() *Stub {
+	return &Stub{}
 }
 
 func (m *Stub) Close() error {
@@ -27,11 +27,6 @@ func (m *Stub) RunStoringPipe(ctx context.Context, products []*vo.Product) error
 	return nil
 }
 
+func (m *Stub) LockupPipe(timestamp time.Time) {}
 
-func (m *Stub) LockUpStoringPipe(ctx context.Context, timestamp time.Time) error {
-	return nil
-}
-
-func (m *Stub) UpgradeToStreamingPipe(ctx context.Context, timestamp time.Time) error {
-	return nil
-}
+func (m *Stub) UpgradeToStreamingPipe(timestamp time.Time) {}

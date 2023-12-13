@@ -2,7 +2,6 @@ package pipe_test
 
 import (
 	"context"
-	"testing"
 
 	"github.com/Goboolean/common/pkg/resolver"
 	"github.com/Goboolean/fetch-system.worker/internal/adapter"
@@ -70,12 +69,4 @@ func (m *MockReceiver) Initialize() {
 
 func (m *MockReceiver) Close() {
 	m.cancel()
-}
-
-
-
-
-
-func TestConstrucor(t *testing.T) {
-
 }
