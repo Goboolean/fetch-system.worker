@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Goboolean/fetch-system.worker/internal/adapter"
+	"github.com/Goboolean/fetch-system.worker/internal/domain/port/in"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/pipe"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/task"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
@@ -13,7 +14,7 @@ import (
 
 var etcdStub = adapter.NewETCDStub()
 
-func SetupTaskManager(workerConfig *vo.Worker) *task.Manager {
+func SetupTaskManager(workerConfig *vo.Worker) in.TaskCommander {
 	m, err := task.New(workerConfig, etcdStub, pipe.New())
 	if err != nil {
 		panic(err)

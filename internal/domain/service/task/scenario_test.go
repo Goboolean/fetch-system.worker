@@ -70,7 +70,6 @@ func TestShutdownError(t *testing.T) {
 		assert.NoError(t, err)
 
 		etcdStub.(*adapter.ETCDStub).CreateShutdownEvent(ctx)
-		etcdStub.(*adapter.ETCDStub).CreateShutdownEvent(ctx)
 		time.Sleep(1 * time.Millisecond)
 
 		_time, err := etcdStub.GetWorkerTimestamp(ctx, w1.ID)
