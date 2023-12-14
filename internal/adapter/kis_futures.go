@@ -20,9 +20,9 @@ func NewFuturesKISAdapter(c *kis.Client) (out.DataFetcher, error) {
 	}, nil
 }
 
-func (a *FuturesKISAdapter) Subscribe(ctx context.Context, symbol ...string) (<-chan vo.Trade, error) {
+func (a *FuturesKISAdapter) InputStream(ctx context.Context, symbol ...string) (<-chan *vo.Trade, error) {
 	
-	ch := make(chan vo.Trade)
+	ch := make(chan *vo.Trade)
 
 	polyonCh, err := a.c.Subscribe(ctx, symbol...)
 	if err != nil {
@@ -31,7 +31,7 @@ func (a *FuturesKISAdapter) Subscribe(ctx context.Context, symbol ...string) (<-
 
 	go func() {
 		for v := range polyonCh {
-			ch <- vo.Trade{
+			ch <- &vo.Trade{
 				ID: v.Symbol,
 				TradeDetail: vo.TradeDetail{
 					Price: v.Price,

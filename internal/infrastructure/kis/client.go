@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -159,6 +160,7 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 
 		data, err := parseTrade(string(message))
 		if err != nil {
+			fmt.Println(err)
 			c.errCh <- err
 			continue
 		}
