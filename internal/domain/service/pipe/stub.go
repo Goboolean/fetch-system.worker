@@ -16,9 +16,7 @@ func NewStub() *Stub {
 	return &Stub{}
 }
 
-func (m *Stub) Close() error {
-	return nil
-}
+func (m *Stub) Close() {}
 
 func (m *Stub) RunStreamingPipe(ctx context.Context, products []*vo.Product) error {
 	return nil
