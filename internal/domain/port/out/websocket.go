@@ -7,9 +7,9 @@ import (
 )
 
 type DataFetcher interface {
-	Subscribe(ctx context.Context, symbols ...string) (<-chan vo.Trade, error)
+	InputStream(ctx context.Context, symbols ...string) (<-chan *vo.Trade, error)
 }
 
 type DataDispatcher interface {
-	GetPipe() chan<- vo.Trade
+	OutputStream(<-chan *vo.Trade) error
 }
