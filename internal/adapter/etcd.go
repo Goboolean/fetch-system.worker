@@ -104,6 +104,10 @@ func (a ETCDAdapter) DeleteWorker(ctx context.Context, workerId string) error {
 	return a.etcd.DeleteWorker(ctx, workerId)
 }
 
+func (a ETCDAdapter) DeleteAllWorkers(ctx context.Context) error {
+	return a.etcd.DeleteAllWorkers(ctx)
+}
+
 func (a ETCDAdapter) WatchConnectionEnds(ctx context.Context, workerId string) (chan struct{}, error) {
 
 	ch := make(chan struct{})

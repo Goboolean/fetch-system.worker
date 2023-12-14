@@ -8,6 +8,6 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o . cmd/main/run.go
+RUN go build -o . cmd/app/main.go
 
 CMD ["./run"]

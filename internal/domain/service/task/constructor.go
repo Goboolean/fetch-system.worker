@@ -75,7 +75,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to aquire mutex: ")
 	}
 
 	if err := mu.Lock(ctx); err != nil {
@@ -212,6 +212,11 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 }
 
 
+func (m *Manager) Cease() error {
+	m.p.Close()
+	return nil
+}
+
 
 func (m *Manager) Shutdown() error {
 
@@ -270,4 +275,9 @@ func (m *Manager) trackChan() {
 				continue
 		}
 	}
+}
+
+
+func (m *Manager) OnConnectionFailed() <-chan struct{} {
+	return m.connCh
 }

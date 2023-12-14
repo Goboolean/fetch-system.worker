@@ -144,7 +144,8 @@ func ProvideKISConfig() *resolver.ConfigMap {
 
 func ProvidePolygonConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
-		"API_KEY": os.Getenv("POLYGON_API_KEY"),
+		"SECRET_KEY":  os.Getenv("POLYGON_SECRET_KEY"),
+		"BUFFER_SIZE": 100000,
 	}
 }
 

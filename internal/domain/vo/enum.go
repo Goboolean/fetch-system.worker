@@ -29,8 +29,8 @@ func (wp Platform) String() string {
 	case PlatformKIS:
 		return "KIS"
 	case PlatformPolygon:
-		return "Polygon"
+		return "POLYGON"
 	default:
-		return "Unknown"
+		return "UNKNOWN"
 	}
 }
