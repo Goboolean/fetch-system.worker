@@ -194,6 +194,35 @@ func (c *Client) InsertProducts(ctx context.Context, p []*Product) error {
 	return nil
 }
 
+func (c *Client) UpsertProducts(ctx context.Context, p []*Product) error {
+
+	var ops []clientv3.Op
+
+	for _, v := range p {
+		payload, err := etcdutil.Serialize(v)
+		if err != nil {
+			return err
+		}
+		for k, v := range payload {
+			ops = append(ops, clientv3.OpPut(k, v))
+		}
+	}
+
+	resp, err := c.client.Txn(ctx).
+		Then(ops...).
+		Commit()
+
+	if err != nil {
+		return err
+	}
+	if flag := resp.Succeeded; !flag {
+		return ErrObjectExists
+	}
+	return nil
+}
+
+
+
 func (c *Client) GetProduct(ctx context.Context, id string) (*Product, error) {
 
 	resp, err := c.client.Get(context.Background(), etcdutil.Identifier("product", id), clientv3.WithPrefix())
@@ -252,23 +281,23 @@ func (c *Client) GetProductsWithCondition(ctx context.Context, platform string, 
 	}
 
 	var p []*Product = make([]*Product, 0)
-	for i, v := range list {
+	for _, v := range list {
 		var product Product
 		if err := etcdutil.Deserialize(v, &product); err != nil {
 			return nil, err
 		}
 
-		if product.Platform != "" && product.Platform != platform {
+		if platform != "" && product.Platform != platform {
 			continue
 		}
-		if product.Market != "" && product.Market != market {
+		if market != "" && product.Market != market {
 			continue
 		}
-		if product.Locale != "" && product.Locale != locale {
+		if locale != "" && product.Locale != locale {
 			continue
 		}
 
-		p[i] = &product
+		p = append(p, &product)
 	}
 	return p, nil
 }
