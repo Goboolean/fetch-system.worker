@@ -23,7 +23,7 @@ const (
 	PlatformKIS      Platform = "KIS"
 	PlatformPolygon  Platform = "Polygon"
 )
-
+/*
 func (wp Platform) String() string {
 	switch wp {
 	case PlatformKIS:
@@ -34,3 +34,19 @@ func (wp Platform) String() string {
 		return "UNKNOWN"
 	}
 }
+*/
+
+type Market string
+
+const (
+	MarketStock  Market = "Stock"
+	MarketCrypto Market = "Crypto"
+)
+
+
+type Locale string
+
+const (
+	LocaleUSA Locale = "USA"
+	LocaleKOR Locale = "KOR"
+)

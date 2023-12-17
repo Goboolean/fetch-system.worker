@@ -134,22 +134,45 @@ func (a ETCDAdapter) WatchPromotion(ctx context.Context, workerId string) (chan 
 	return ch, nil
 }
 
-func (a ETCDAdapter) GetAllProducts(ctx context.Context) ([]vo.Product, error) {
+func (a ETCDAdapter) GetAllProducts(ctx context.Context) ([]*vo.Product, error) {
 	productList, err := a.etcd.GetAllProducts(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	products := make([]vo.Product, len(productList))
+	products := make([]*vo.Product, len(productList))
 
 	for product := range products {
-		products[product] = vo.Product{
+		products[product] = &vo.Product{
 			Symbol: productList[product].Symbol,
 			ID: productList[product].ID,
 			Platform: vo.Platform(productList[product].Platform),
+			Market:   vo.Market(productList[product].Market),
+			Locale:   vo.Locale(productList[product].Locale),
 		}
 	}
 
+	return products, nil
+}
+
+func (a ETCDAdapter) GetProducts(ctx context.Context, platform vo.Platform, market vo.Market) ([]*vo.Product, error) {
+	productList, err := a.etcd.GetProductsWithCondition(ctx, string(platform), string(market), "")
+	if err != nil {
+		return nil, err
+	}
+
+	products := make([]*vo.Product, len(productList))
+
+	for product := range products {
+		products[product] = &vo.Product{
+			Symbol: productList[product].Symbol,
+			ID: productList[product].ID,
+			Platform: vo.Platform(productList[product].Platform),
+			Market:   vo.Market(productList[product].Market),
+			Locale:   vo.Locale(productList[product].Locale),
+		}
+	}
+	
 	return products, nil
 }
 

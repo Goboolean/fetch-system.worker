@@ -6,7 +6,9 @@ import "time"
 type Product struct {
 	Symbol   string
 	ID       string
-	Platform 
+	Platform Platform
+	Market   Market
+	Locale   Locale
 }
 
 
@@ -25,4 +27,5 @@ type Worker struct {
 	ID       string
 	Status   WorkerStatus
 	Platform Platform
+	Market   Market
 }

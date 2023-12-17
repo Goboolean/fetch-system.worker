@@ -16,16 +16,19 @@ func TestShutdownError(t *testing.T) {
 	w1 := vo.Worker{
 		ID: "first",
 		Platform: vo.PlatformKIS,
+		Market: vo.MarketStock,
 	}
 
 	w2 := vo.Worker{
 		ID: "second",
 		Platform: vo.PlatformKIS,
+		Market: vo.MarketStock,
 	}
 
 	w3 := vo.Worker{
 		ID: "third",
 		Platform: vo.PlatformKIS,
+		Market: vo.MarketStock,
 	}
 
 	m1 := SetupTaskManager(&w1)
@@ -99,16 +102,19 @@ func TestTTLFailed(t *testing.T) {
 	w1 := vo.Worker{
 		ID: "first",
 		Platform: vo.PlatformKIS,
+		Market: vo.MarketStock,
 	}
 
 	w2 := vo.Worker{
 		ID: "second",
 		Platform: vo.PlatformKIS,
+		Market: vo.MarketStock,
 	}
 
 	w3 := vo.Worker{
 		ID: "third",
 		Platform: vo.PlatformKIS,
+		Market: vo.MarketStock,
 	}
 
 	m1 := SetupTaskManager(&w1)
