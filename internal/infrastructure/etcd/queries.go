@@ -238,7 +238,48 @@ func (c *Client) GetAllProducts(ctx context.Context) ([]*Product, error) {
 	return p, nil
 }
 
+func (c *Client) GetProductsWithCondition(ctx context.Context, platform string, market string, locale string) ([]*Product, error) {
+
+	resp, err := c.client.Get(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+	m := etcdutil.PayloadToMap(resp)
+
+	list, err := etcdutil.GroupByPrefix(m)
+	if err != nil {
+		return nil, err
+	}
+
+	var p []*Product = make([]*Product, 0)
+	for i, v := range list {
+		var product Product
+		if err := etcdutil.Deserialize(v, &product); err != nil {
+			return nil, err
+		}
+
+		if product.Platform != "" && product.Platform != platform {
+			continue
+		}
+		if product.Market != "" && product.Market != market {
+			continue
+		}
+		if product.Locale != "" && product.Locale != locale {
+			continue
+		}
+
+		p[i] = &product
+	}
+	return p, nil
+}
+
+
 func (c *Client) DeleteProduct(ctx context.Context, id string) error {
 	_, err := c.client.Delete(context.Background(), etcdutil.Identifier("product", id), clientv3.WithPrefix())
+	return err
+}
+
+func (c *Client) DeleteAllProducts(ctx context.Context) error {
+	_, err := c.client.Delete(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
 	return err
 }

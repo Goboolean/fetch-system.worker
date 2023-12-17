@@ -16,7 +16,7 @@ type ETCDStub struct {
 	m sync.Mutex
 
 	workerList map[string]vo.Worker
-	productList []vo.Product
+	productList []*vo.Product
 
 	workerTimestamp map[string]time.Time
 
@@ -28,7 +28,7 @@ type ETCDStub struct {
 func NewETCDStub() out.StorageHandler {
 	return &ETCDStub{
 		workerList: make(map[string]vo.Worker),
-		productList: make([]vo.Product, 0),
+		productList: make([]*vo.Product, 0),
 		workerTimestamp: make(map[string]time.Time),
 
 		promCh: make(chan struct{}, 1),
@@ -140,7 +140,18 @@ func (s *ETCDStub) WatchPromotion(ctx context.Context, workerId string) (chan st
 	return s.promCh, nil
 }
 
-func (s *ETCDStub) GetAllProducts(ctx context.Context) ([]vo.Product, error) {
+func (s *ETCDStub) GetAllProducts(ctx context.Context) ([]*vo.Product, error) {
+	return s.productList, nil
+}
+
+func (s *ETCDStub) GetProducts(ctx context.Context, platform vo.Platform, market vo.Market) ([]*vo.Product, error) {
+	result := make([]vo.Product, 0)
+	for _, product := range s.productList {
+		if product.Platform == platform && product.Market == market {
+			result = append(result, *product)
+		}
+	}
+
 	return s.productList, nil
 }
 
@@ -160,7 +171,7 @@ func (s *ETCDStub) DeleteAllWorkers(ctx context.Context) error {
 func (s *ETCDStub) Cleanup() {
 
 	s.workerList = make(map[string]vo.Worker)
-	s.productList = make([]vo.Product, 0)
+	s.productList = make([]*vo.Product, 0)
 	s.workerTimestamp = make(map[string]time.Time)
 
 	s.promCh = make(chan struct{}, 1)

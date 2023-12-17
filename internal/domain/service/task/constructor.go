@@ -9,7 +9,6 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/pipe"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
-	"github.com/ahmetb/go-linq/v3"
 	"github.com/pkg/errors"
 )
 
@@ -47,6 +46,10 @@ func New(worker *vo.Worker, s out.StorageHandler, p pipe.Handler) (*Manager, err
 		return nil, fmt.Errorf("worker platform is empty")
 	}
 
+	if worker.Market == "" {
+		return nil, fmt.Errorf("worker market is empty")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Manager{
@@ -75,7 +78,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
-		return errors.Wrap(err, "failed to aquire mutex: ")
+		return err
 	}
 
 	if err := mu.Lock(ctx); err != nil {
@@ -107,23 +110,23 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		return err
 	}
 
-	products, err := m.s.GetAllProducts(ctx)
+	products, err := m.s.GetProducts(ctx, m.worker.Platform, m.worker.Market)
 	if err != nil {
 		return err
 	}
-
+/*
 	var productsFiltered []*vo.Product
 	linq.From(products).WhereT(func(product vo.Product) bool {
 		return product.Platform == m.worker.Platform
 	}).ToSlice(&productsFiltered)
-
+*/
 	m.s.CreateConnection(ctx, m.worker.ID)
 
 	var pipeErr error
 	if !isSecondary {
-		pipeErr = m.p.RunStreamingPipe(ctx, productsFiltered)
+		pipeErr = m.p.RunStreamingPipe(ctx, products)
 	} else {
-		pipeErr = m.p.RunStoringPipe(ctx, productsFiltered)
+		pipeErr = m.p.RunStoringPipe(ctx, products)
 	}
 
 	if pipeErr != nil {

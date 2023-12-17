@@ -62,6 +62,7 @@ func ProvideWorkerConfig() *vo.Worker {
 	return &vo.Worker{
 		ID: os.Getenv("WORKER_ID"),
 		Platform: vo.Platform(os.Getenv("PLATFORM")),
+		Market: vo.Market(os.Getenv("MARKET")),
 	}
 }
 
@@ -170,7 +171,7 @@ func InitializePolygonCryptoClient() (out.DataFetcher, func(), error) {
 func InitializeFetcher() (out.DataFetcher, func(), error) {
 	switch os.Getenv("PLATFORM") {
 	case "POLYGON":
-		switch os.Getenv("PRODUCT") {
+		switch os.Getenv("MARKET") {
 			case "STOCK":
 				return InitializePolygonStockClient()
 			case "OPTION":
@@ -178,7 +179,7 @@ func InitializeFetcher() (out.DataFetcher, func(), error) {
 			case "CRYPTO":
 				return InitializePolygonCryptoClient()
 			default:
-				return nil, nil, fmt.Errorf("invalid product")
+				return nil, nil, fmt.Errorf("invalid market: %s", os.Getenv("MARKET"))
 			}
 	case "KIS":
 		return nil, nil, fmt.Errorf("not implemented")

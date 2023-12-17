@@ -16,10 +16,11 @@ func (w *Worker) Name() string {
 
 
 type Product struct {
-	ID       string `etcd:"id"`       // product_type.name.region
+	ID       string `etcd:"id"`       // {market}.{symbol}.{locale}
 	Platform string `etcd:"platform"` // kis, polygon, buycycle, ...
 	Symbol   string `etcd:"symbol"`   // identifier inside platform
-	Type     string `etcd:"type"`     // stock, future, option, ...
+	Locale   string `etcd:"locale"`   // usa, kor, ...
+	Market   string `etcd:"market"`   // stock, future, option, ...
 }
 
 func (p *Product) Name() string {
