@@ -8,7 +8,7 @@ services:
      - ETCD_HOST=etcd:2379
      - KAFKA_BOOTSTRAP_HOST=kafka:9092
      - PLATFORM=POLYGON
-     - PRODUCT=STOCK
+     - MARKET=STOCK
      - WORKER_ID=test
     env_file:
       - .env
