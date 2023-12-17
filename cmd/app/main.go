@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -55,11 +54,8 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Successfully running")
-
 	select {
 	case <-ctx.Done():
-		fmt.Println("shutdowning...")
 		taskManager.Shutdown()
 		return
 	case <-taskManager.OnConnectionFailed():

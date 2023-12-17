@@ -35,11 +35,6 @@ func TestMainScenario(t *testing.T) {
 		taskManager *task.Manager
 	)
 
-	t.Cleanup(func() {
-		err := etcd.DeleteAllWorkers(ctx)
-		assert.NoError(t, err)
-	})
-
 	t.Run("Run kafka", func(tt *testing.T) {
 		var cleanup func()
 
@@ -81,6 +76,11 @@ func TestMainScenario(t *testing.T) {
 
 	t.Run("Register worker", func(t *testing.T) {
 		err := taskManager.RegisterWorker(ctx); 
+		assert.NoError(t, err)
+	})
+
+	t.Cleanup(func() {
+		err := etcd.DeleteAllWorkers(ctx)
 		assert.NoError(t, err)
 	})
 }
