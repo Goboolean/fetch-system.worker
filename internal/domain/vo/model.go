@@ -14,7 +14,8 @@ type Product struct {
 
 type Trade struct {
 	TradeDetail
-	ID string
+	ID     string
+	Symbol string
 }
 
 type TradeDetail struct {

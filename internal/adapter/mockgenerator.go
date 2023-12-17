@@ -28,7 +28,7 @@ func (a *MockGeneratorAdapter) InputStream(ctx context.Context, symbols ...strin
 	go func() {
 		for v := range a.g.Subscribe(symbols...) {
 			ch <- &vo.Trade{
-				ID: v.Symbol,
+				Symbol: v.Symbol,
 				TradeDetail: vo.TradeDetail{
 					Price: v.Price,
 					Size: v.Amount,

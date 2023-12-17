@@ -16,6 +16,7 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
+	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
 	"os"
 )
@@ -94,6 +95,22 @@ func InitializePolygonCryptoClient() (out.DataFetcher, func(), error) {
 	}, nil
 }
 
+func InitializeMockGenerator() (out.DataFetcher, func(), error) {
+	configMap := ProvideMockGeneratorConfig()
+	client, cleanup, err := ProvideMockGenerator(configMap)
+	if err != nil {
+		return nil, nil, err
+	}
+	dataFetcher, err := adapter.NewMockGeneratorAdapter(client)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	return dataFetcher, func() {
+		cleanup()
+	}, nil
+}
+
 func InitializeETCD() (*etcd.Client, error) {
 	configMap := ProvideETCDConfig()
 	client, err := etcd.New(configMap)
@@ -125,7 +142,7 @@ func ProvideKafkaConfig() *resolver.ConfigMap {
 	}
 }
 
-func ProvideMockGenerator() *resolver.ConfigMap {
+func ProvideMockGeneratorConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"MODE":               "BASIC",
 		"STANDARD_DEVIATION": 100,
@@ -213,6 +230,16 @@ func ProvidePolygonCryptoClient(c *resolver.ConfigMap) (*polygon.CryptoClient, f
 	}, nil
 }
 
+func ProvideMockGenerator(c *resolver.ConfigMap) (*mock.Client, func(), error) {
+	client, err := mock.New(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, func() {
+		client.Close()
+	}, nil
+}
+
 func InitializeFetcher() (out.DataFetcher, func(), error) {
 	switch os.Getenv("PLATFORM") {
 	case "POLYGON":
@@ -228,6 +255,8 @@ func InitializeFetcher() (out.DataFetcher, func(), error) {
 		}
 	case "KIS":
 		return nil, nil, fmt.Errorf("not implemented")
+	case "MOCK":
+		return InitializeMockGenerator()
 	default:
 		return nil, nil, fmt.Errorf("invalid platform")
 	}

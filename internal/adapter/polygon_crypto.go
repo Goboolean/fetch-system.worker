@@ -32,7 +32,7 @@ func (a *CryptoPolygonAdapter) InputStream(ctx context.Context, symbol ...string
 	go func() {
 		for v := range polyonCh {
 			ch <- &vo.Trade{
-				ID: v.Pair,
+				Symbol: v.Pair,
 				TradeDetail: vo.TradeDetail{
 					Price: v.Price,
 					Size: int64(v.Size),

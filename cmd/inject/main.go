@@ -15,6 +15,7 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
+	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
 	"github.com/google/wire"
 )
@@ -27,7 +28,7 @@ func ProvideKafkaConfig() *resolver.ConfigMap {
 	}
 }
 
-func ProvideMockGenerator() *resolver.ConfigMap {
+func ProvideMockGeneratorConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"MODE":               "BASIC",
 		"STANDARD_DEVIATION": 100,
@@ -118,6 +119,16 @@ func ProvidePolygonCryptoClient(c *resolver.ConfigMap) (*polygon.CryptoClient, f
 	}, nil
 }
 
+func ProvideMockGenerator(c *resolver.ConfigMap) (*mock.Client, func(), error) {
+	client, err := mock.New(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	return client, func() {
+		client.Close()
+	}, nil
+}
+
 
 
 func InitializeKafkaProducer() (out.DataDispatcher, func(), error) {
@@ -165,6 +176,16 @@ func InitializePolygonCryptoClient() (out.DataFetcher, func(), error) {
 	return nil, nil, nil
 }
 
+func InitializeMockGenerator() (out.DataFetcher, func(), error) {
+	wire.Build(
+		ProvideMockGeneratorConfig,
+		ProvideMockGenerator,
+		adapter.NewMockGeneratorAdapter,
+	)
+	return nil, nil, nil
+
+}
+
 
 
 
@@ -183,6 +204,8 @@ func InitializeFetcher() (out.DataFetcher, func(), error) {
 			}
 	case "KIS":
 		return nil, nil, fmt.Errorf("not implemented")
+	case "MOCK":
+		return InitializeMockGenerator()
 	default:
 		return nil, nil, fmt.Errorf("invalid platform")
 	}

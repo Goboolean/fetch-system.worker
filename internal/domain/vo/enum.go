@@ -21,26 +21,16 @@ type Platform string
 
 const (
 	PlatformKIS      Platform = "KIS"
-	PlatformPolygon  Platform = "Polygon"
+	PlatformPolygon  Platform = "POLYGON"
+	PlatformMock	 Platform = "MOCK"
 )
-/*
-func (wp Platform) String() string {
-	switch wp {
-	case PlatformKIS:
-		return "KIS"
-	case PlatformPolygon:
-		return "POLYGON"
-	default:
-		return "UNKNOWN"
-	}
-}
-*/
+
 
 type Market string
 
 const (
-	MarketStock  Market = "Stock"
-	MarketCrypto Market = "Crypto"
+	MarketStock  Market = "STOCK"
+	MarketCrypto Market = "CRYPTO"
 )
 
 

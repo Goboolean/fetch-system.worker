@@ -14,10 +14,7 @@ func parseTrade(str string) ([]*Trade, error) {
 	data := strings.Split(str, "^")
 	tradeList := make([]*Trade, 0)
 
-	fmt.Println("length of data: ", len(data))
-
 	if len(data) % 26 == 0 {
-
 		for i := 0; i < len(data); i += 26 {
 			dataPiece := data[i:i+26]
 			trade, err := parseStringToOverseaTrade(dataPiece)

@@ -32,7 +32,7 @@ func (a *StockPolygonAdapter) InputStream(ctx context.Context, symbol ...string)
 	go func() {
 		for v := range polyonCh {
 			ch <- &vo.Trade{
-				ID: v.Symbol,
+				Symbol: v.Symbol,
 				TradeDetail: vo.TradeDetail{
 					Price: v.Price,
 					Size: v.Size,
