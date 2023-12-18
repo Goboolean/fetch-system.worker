@@ -49,3 +49,13 @@ func NewCryptoClient(c *resolver.ConfigMap) (*CryptoClient, error) {
 func (c *CryptoClient) Subscribe() (<-chan models.CryptoTrade, error) {
 	return c.client.Subscribe()
 }
+
+func (c *CryptoClient) IsMarketOn(ctx context.Context) (bool, error) {
+	
+	resp, err := c.rest.GetMarketStatus(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return (resp.Currencies["crypto"] == "open"), nil
+}
