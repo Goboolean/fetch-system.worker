@@ -29,10 +29,10 @@ type HeaderJson struct {
 }
 
 type RequestBodyJson struct {
-	Input RequestInputJson `json:"input"`
+	Input RequestInput `json:"input"`
 }
 
-type RequestInputJson struct {
+type RequestInput struct {
 	TrId  string `json:"tr_id"`  // 거래 ID (H0STCNT0: 실시간 주식 체결가, H0STASP0: 주식 호가, HDFSCNT0: 실시간 미국장)
 	TrKey string `json:"tr_key"` // 종목코드
 }
@@ -69,7 +69,7 @@ type PingpongHeaderJson struct {
 	Datetime  string `json:"datetime"`
 }
 
-type PingpongResponseJson struct {
+type PingpongResponse struct {
 	Header PingpongHeaderJson `json:"header"`
 }
 
@@ -96,4 +96,44 @@ func isPingpongMsg(data []byte) bool {
 		return false
 	}
 	return true
+}
+
+
+type AccessKeyRequestBodyJson struct {
+	GrantType string `json:"grant_type"`
+	AppKey    string `json:"appkey"`
+	AppSecret string `json:"appsecret"`
+}
+
+type AccessKeyResponseBodyJson struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
+type AccessKeyErrorResponseJson struct {
+	ErrorDescription string `json:"error_description"`
+	ErrorCode        string `json:"error_code"`
+}
+
+
+type CheckHolidayRequest struct {
+	BassDt    string `json:"BASS_DT"`
+	CtxAreaNk string `json:"CTX_AREA_NK"`
+	CtxAreaFk string `json:"CTX_AREA_FK"`
+}
+
+type CheckHolidayResponse struct {
+	CtxAreaNk string `json:"ctx_area_nk"`
+	CtxAreaFk string `json:"ctx_area_fk"`
+	Output	[]CheckHolidayElement `json:"output"`
+}
+
+type CheckHolidayElement struct {
+	BassDt string `json:"bass_dt"`
+	WdayDvsnCd string `json:"wday_dvsn_cd"`
+	BzdyYn string `json:"bzdy_yn"`
+	TrDayYn string `json:"tr_day_yn"`
+	OpndYn string `json:"opnd_yn"`
+	SttlDayYn string `json:"sttl_day_yn"`
 }

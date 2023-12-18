@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -18,7 +19,9 @@ import (
 
 const (
 	host = "ops.koreainvestment.com:21000"
-	keyIssueURL = "https://openapi.koreainvestment.com:9443/oauth2/Approval"
+	approvalKeyIssueURL = "https://openapi.koreainvestment.com:9443/oauth2/Approval"
+	checkHolidayURL     = "https://openapi.koreainvestment.com:9443/uapi/domestic-stock/v1/quotations/chk-holiday"
+	tokenIssueURL       = "https://openapivts.koreainvestment.com:29443/oauth2/tokenP"
 )
 
 const (
@@ -32,6 +35,9 @@ type Client struct {
 	conn *websocket.Conn
 
 	approvalKey string
+	accessKey   string
+	appKey 	    string
+	setretKey   string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -81,12 +87,20 @@ func New(c *resolver.ConfigMap) (*Client, error) {
 		return nil, err
 	}
 
-	approvalKey, err := instance.GetApprovalKey(appkey, secretkey)
+	approvalKey, err := instance.GetApprovalKey(ctx, appkey, secretkey)
+	if err != nil {
+		return nil, err
+	}
+
+	accessKey, err := instance.IssueAccessToken(ctx, appkey, secretkey)
 	if err != nil {
 		return nil, err
 	}
 
 	instance.approvalKey = approvalKey
+	instance.accessKey = accessKey
+	instance.appKey = appkey
+	instance.setretKey = secretkey
 
 	instance.wg.Add(1)
 	go instance.runReader(instance.ctx, &instance.wg)
@@ -170,39 +184,117 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 
-func (c *Client) GetApprovalKey(Appkey string, Secretkey string) (string, error) {
-	data := &getApprovalKeyReqeust{
+func (c *Client) GetApprovalKey(ctx context.Context, Appkey string, Secretkey string) (string, error) {
+
+	jsonData, err := json.Marshal(getApprovalKeyReqeust{
 		GrantType: "client_credentials",
 		AppKey:    Appkey,
 		SecretKey: Secretkey,
-	}
-	jsonData, err := json.Marshal(data)
+	})
 	if err != nil {
 		return "", err
 	}
 
-	response, err := http.Post(keyIssueURL, "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", approvalKeyIssueURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err	
+	}
+
+	req.Header.Set("content-type", "application/json; charset=utf-8")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf(string(body))
 	}
 
 	var res getApprovalKeyResponse
-
 	if err := json.Unmarshal(body, &res); err != nil {
 		return "", err
 	}
 
 	if res.ApprovalKey == "" {
-		return res.ApprovalKey, errors.New("invalid request")
+		return res.ApprovalKey, fmt.Errorf("approval key is empty")
 	}
 
 	return res.ApprovalKey, nil
+}
+
+
+func (c *Client) issueAccessToken(ctx context.Context, appkey string, appsecret string) (string, bool, error) {
+
+	var retryable bool = false
+
+	jsonData, err := json.Marshal(AccessKeyRequestBodyJson{
+		GrantType: "client_credentials",
+		AppKey:    appkey,
+		AppSecret: appsecret,
+	})
+	if err != nil {
+		return "", retryable, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenIssueURL, bytes.NewBuffer(jsonData))
+	req.Header.Set("content-type", "application/json; charset=utf-8")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", retryable, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", retryable, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var res AccessKeyErrorResponseJson
+		if err := json.Unmarshal(body, &res); err != nil {
+			return "", retryable, err
+		}
+
+		if res.ErrorCode == "EGW00133" {
+			retryable = true
+		}
+		return "", retryable, fmt.Errorf(string(body))
+	}
+
+	var res AccessKeyResponseBodyJson
+	if err := json.Unmarshal(body, &res); err != nil {
+		return "", retryable, err
+	}
+
+	if res.AccessToken == "" {
+		return "", retryable, fmt.Errorf("access token is empty")
+	}
+
+	return res.AccessToken, retryable, nil
+}
+
+func (c *Client) IssueAccessToken(ctx context.Context, appkey string, appsecret string) (string, error){
+	token, retryable, err := c.issueAccessToken(ctx, appkey, appsecret)
+	if err != nil {
+		if retryable {
+			select {
+			case <- ctx.Done():
+				return "", errors.Join(ctx.Err(), err)
+			case <- time.After(time.Second * 10):
+				return c.IssueAccessToken(ctx, appkey, appsecret)
+			}
+		}
+	}
+
+	return token, err
 }
 
 
@@ -243,7 +335,7 @@ func (c *Client) subscribeProduct(symbol string) error {
 			ContentType: "utf-8",
 		},
 		Body: RequestBodyJson{
-			Input: RequestInputJson{
+			Input: RequestInput{
 				TrId:  "H0STCNT0", // "HDFSCNT0",
 				TrKey: symbol,
 			},
@@ -255,4 +347,60 @@ func (c *Client) subscribeProduct(symbol string) error {
 	}
 
 	return nil
+}
+
+
+
+func (c *Client) IsMarketOn(ctx context.Context) (bool, error) {
+
+	kst := time.FixedZone("KST", 9*60*60)
+	now := time.Now().In(kst)
+
+	date := now.Format("20060102")
+	url := fmt.Sprintf("%s?BASS_DT=%s&CTX_AREA_NK=&CTX_AREA_FK=", checkHolidayURL, date)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set("content-type", "application/json; charset=utf-8")
+	req.Header.Set("authorization", fmt.Sprintf("Bearer %s", c.accessKey))
+	req.Header.Set("appkey", c.appKey)
+	req.Header.Set("appsecret", c.setretKey)
+	req.Header.Set("tr_id", "CTCA0903R")
+	req.Header.Set("custtype", custtype)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return false, errors.Join(fmt.Errorf(string(body)), err) 
+	}
+
+	var res CheckHolidayResponse
+	if err := json.Unmarshal(body, &res); err != nil {
+		return false, err
+	}
+
+	if len(res.Output) == 0 {
+		return false, fmt.Errorf("output is empty")
+	}
+
+	if res.Output[0].BzdyYn == "N" || res.Output[0].TrDayYn == "N" || res.Output[0].OpndYn == "N" {
+		return false, nil
+	}
+
+	start := time.Date(now.Year(), now.Month(), now.Day(), 9, 0, 0, 0, kst)
+    end := time.Date(now.Year(), now.Month(), now.Day(), 15, 30, 0, 0, kst)
+
+	return (now.After(start) && now.Before(end)), nil
 }
