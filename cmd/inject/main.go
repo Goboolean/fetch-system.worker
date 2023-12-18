@@ -17,7 +17,6 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
-	"github.com/Goboolean/fetch-system.worker/internal/util/otel"
 	"github.com/google/wire"
 )
 
@@ -78,17 +77,6 @@ func ProvideWorkerConfig() *vo.Worker {
 
 
 
-func ProvideOtelExporter(c *resolver.ConfigMap) (*otel.Wrapper, func(), error) {
-	exporter, err := otel.New(c)
-	if err != nil {
-		return nil, nil, err
-	}
-	return exporter, func() {
-		exporter.Close()
-	}, nil
-}
-
-
 func ProvideKafkaProducer(c *resolver.ConfigMap) (*kafka.Producer, func(), error) {
     producer, err := kafka.NewProducer(c)
     if err != nil {
@@ -147,15 +135,6 @@ func ProvideMockGenerator(c *resolver.ConfigMap) (*mock.Client, func(), error) {
 	return client, func() {
 		client.Close()
 	}, nil
-}
-
-
-func InitializeOtelExporter() (*otel.Wrapper, func(), error) {
-	wire.Build(
-		ProvideOtelConfig,
-		ProvideOtelExporter,
-	)
-	return nil, nil, nil
 }
 
 

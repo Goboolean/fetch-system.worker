@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	_ "github.com/Goboolean/common/pkg/env"
+	_ "github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
 )
 
 
@@ -33,15 +34,6 @@ func TestMainScenario(t *testing.T) {
 		pipeManager *pipe.Manager
 		taskManager *task.Manager
 	)
-
-	t.Run("Run otel", func(tt *testing.T) {
-		var cleanup func()
-
-		_, cleanup, err := inject.InitializeOtelExporter()
-		assert.NoError(tt, err)
-
-		t.Cleanup(cleanup)
-	})
 
 	t.Run("Run etcd", func(tt *testing.T) {
 		var cleanup func()
