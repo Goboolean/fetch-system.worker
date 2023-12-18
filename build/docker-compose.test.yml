@@ -10,6 +10,7 @@ services:
      - PLATFORM=MOCK
      - MARKET=STOCK
      - WORKER_ID=test
+     - OTEL_ENDPOINT=otel-collector:4317
     env_file:
       - .env
 
@@ -42,3 +43,12 @@ services:
       - "ALLOW_PLAINTEXT_LISTENER=yes" 
       - "listeners=PLAINTEXT://0.0.0.0/0"
       - "advertised.listeners=PLAINTEXT://kafka:9092"
+
+  otel-collector:
+    image: otel/opentelemetry-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317"
+      - "8889"

@@ -18,10 +18,22 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
+	"github.com/Goboolean/fetch-system.worker/internal/util/otel"
 	"os"
 )
 
 // Injectors from main.go:
+
+func InitializeOtelExporter() (*otel.Wrapper, func(), error) {
+	configMap := ProvideOtelConfig()
+	wrapper, cleanup, err := ProvideOtelExporter(configMap)
+	if err != nil {
+		return nil, nil, err
+	}
+	return wrapper, func() {
+		cleanup()
+	}, nil
+}
 
 func InitializeKafkaProducer() (out.DataDispatcher, func(), error) {
 	configMap := ProvideKafkaConfig()
@@ -136,6 +148,12 @@ func InitializeTaskManager(handler pipe.Handler, storageHandler out.StorageHandl
 
 // main.go:
 
+func ProvideOtelConfig() *resolver.ConfigMap {
+	return &resolver.ConfigMap{
+		"OTEL_ENDPOINT": os.Getenv("OTEL_ENDPOINT"),
+	}
+}
+
 func ProvideKafkaConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"BOOTSTRAP_HOST": os.Getenv("KAFKA_BOOTSTRAP_HOST"),
@@ -178,6 +196,16 @@ func ProvideWorkerConfig() *vo.Worker {
 		Platform: vo.Platform(os.Getenv("PLATFORM")),
 		Market:   vo.Market(os.Getenv("MARKET")),
 	}
+}
+
+func ProvideOtelExporter(c *resolver.ConfigMap) (*otel.Wrapper, func(), error) {
+	exporter, err := otel.New(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	return exporter, func() {
+		exporter.Close()
+	}, nil
 }
 
 func ProvideKafkaProducer(c *resolver.ConfigMap) (*kafka.Producer, func(), error) {
