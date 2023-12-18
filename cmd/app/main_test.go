@@ -3,84 +3,72 @@ package main_test
 import (
 	"context"
 	"os"
-	"os/signal"
-	"syscall"
 	"testing"
 
-	"github.com/Goboolean/fetch-system.worker/cmd/inject"
-	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
-	"github.com/Goboolean/fetch-system.worker/internal/domain/service/pipe"
-	"github.com/Goboolean/fetch-system.worker/internal/domain/service/task"
-	"github.com/stretchr/testify/assert"
+	"github.com/Goboolean/fetch-system.IaC/pkg/kafka"
+	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 
 	_ "github.com/Goboolean/common/pkg/env"
+	"github.com/Goboolean/common/pkg/resolver"
 )
 
 
 
-
-
-func TestMainScenario(t *testing.T) {
-	var err error
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	var (
-		kafka out.DataDispatcher
-		etcd out.StorageHandler
-		fetcher out.DataFetcher
-
-		pipeManager *pipe.Manager
-		taskManager *task.Manager
-	)
-
-	t.Run("Run kafka", func(tt *testing.T) {
-		var cleanup func()
-
-		kafka, cleanup, err = inject.InitializeKafkaProducer()
-		assert.NoError(tt, err)
-
-		t.Cleanup(cleanup)
+func SetupKafkaConsumer() *kafka.Consumer {
+	c, err := kafka.NewConsumer(&resolver.ConfigMap{
+		"BOOTSTRAP_HOST": os.Getenv("KAFKA_BOOTSTRAP_HOST"),
+		"GROUP_ID":       "TEST",
 	})
+	if err != nil {
+		panic(err)
+	}
 
-	t.Run("Run etcd", func(tt *testing.T) {
-		var cleanup func()
+	return c
+}
 
-		etcd, cleanup, err = inject.InitializeETCDClient()
-		assert.NoError(tt, err)
-
-		t.Cleanup(cleanup)
+func SetupETCD() *etcd.Client {
+	c, err := etcd.New(&resolver.ConfigMap{
+		"HOST": os.Getenv("ETCD_HOST"),
 	})
+	if err != nil {
+		panic(err)
+	}
 
-	t.Run("Run fetcher", func(tt *testing.T) {
-		var cleanup func()
+	return c
+}
 
-		fetcher, cleanup, err = inject.InitializeFetcher()
-		assert.NoError(tt, err)
+var e *etcd.Client
 
-		t.Cleanup(cleanup)
-	})
+func SetupTestEnvironment() {
+	e = SetupETCD()
 
-	t.Run("Run pipe manager", func(t *testing.T) {
-		var err error
-		pipeManager, err = inject.InitializePipeManager(kafka, fetcher)
-		assert.NoError(t, err)
-	})
+	var products = []*etcd.Product{
+		{ID: "stock.TEST1.usa", Platform: "MOCK", Symbol: "TEST1", Market: "STOCK", Locale: "USA"},
+		{ID: "stock.TEST2.usa", Platform: "MOCK", Symbol: "TEST2", Market: "STOCK", Locale: "USA"},
+		{ID: "stock.TEST3.usa", Platform: "MOCK", Symbol: "TEST3", Market: "STOCK", Locale: "USA"},
+	}
 
-	t.Run("Run task manager", func(t *testing.T) {
-		var err error
-		taskManager, err = inject.InitializeTaskManager(pipeManager, etcd)
-		assert.NoError(t, err)
-	})
+	if err := e.UpsertProducts(context.Background(), products); err != nil {
+		panic(err)
+	}
+}
 
-	t.Run("Register worker", func(t *testing.T) {
-		err := taskManager.RegisterWorker(ctx); 
-		assert.NoError(t, err)
-	})
+func TeardownTestEnvironment() {
+	if err := e.DeleteAllProducts(context.Background()); err != nil {
+		panic(err)
+	}
 
-	t.Cleanup(func() {
-		err := etcd.DeleteAllWorkers(ctx)
-		assert.NoError(t, err)
-	})
+	if err := e.DeleteAllWorkers(context.Background()); err != nil {
+		panic(err)
+	}
+
+	e.Close()
+}
+
+
+func TestMain(m *testing.M) {
+	SetupTestEnvironment()
+	code := m.Run()
+	TeardownTestEnvironment()
+	os.Exit(code)
 }

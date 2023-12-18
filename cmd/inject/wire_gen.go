@@ -146,8 +146,8 @@ func ProvideMockGeneratorConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"MODE":               "BASIC",
 		"STANDARD_DEVIATION": 100,
-		"PRODUCT_COUNT":      1000,
-		"PRODUCTION_RATE":    100,
+		"PRODUCT_COUNT":      10,
+		"PRODUCTION_RATE":    10,
 		"BUFFER_SIZE":        100000,
 	}
 }
