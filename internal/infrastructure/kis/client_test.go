@@ -47,6 +47,14 @@ func TestConstructor(t *testing.T) {
 		err := c.Ping(ctx)
 		assert.NoError(t, err)
 	})
+
+	t.Run("IsMarketOn", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*61)
+		defer cancel()
+
+		_, err := c.IsMarketOn(ctx)
+		assert.NoError(t, err)
+	})
 }
 
 

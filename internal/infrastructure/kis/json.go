@@ -118,6 +118,22 @@ type AccessKeyErrorResponseJson struct {
 
 
 type CheckHolidayRequest struct {
-	BASSDATE string `json:"bassdate"`
-	CTXAREANK string `json:"ctxareank"`
+	BassDt    string `json:"BASS_DT"`
+	CtxAreaNk string `json:"CTX_AREA_NK"`
+	CtxAreaFk string `json:"CTX_AREA_FK"`
+}
+
+type CheckHolidayResponse struct {
+	CtxAreaNk string `json:"ctx_area_nk"`
+	CtxAreaFk string `json:"ctx_area_fk"`
+	Output	[]CheckHolidayElement `json:"output"`
+}
+
+type CheckHolidayElement struct {
+	BassDt string `json:"bass_dt"`
+	WdayDvsnCd string `json:"wday_dvsn_cd"`
+	BzdyYn string `json:"bzdy_yn"`
+	TrDayYn string `json:"tr_day_yn"`
+	OpndYn string `json:"opnd_yn"`
+	SttlDayYn string `json:"sttl_day_yn"`
 }

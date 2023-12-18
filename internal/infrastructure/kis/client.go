@@ -20,9 +20,8 @@ import (
 const (
 	host = "ops.koreainvestment.com:21000"
 	approvalKeyIssueURL = "https://openapi.koreainvestment.com:9443/oauth2/Approval"
-	tokenIssueURL = "https://openapivts.koreainvestment.com:29443/oauth2/tokenP"
-
-	isHolidayURL = "https://openapi.koreainvestment.com:9443//uapi/domestic-stock/v1/quotations/chk-holiday"
+	checkHolidayURL     = "https://openapi.koreainvestment.com:9443/uapi/domestic-stock/v1/quotations/chk-holiday"
+	tokenIssueURL       = "https://openapivts.koreainvestment.com:29443/oauth2/tokenP"
 )
 
 const (
@@ -37,6 +36,8 @@ type Client struct {
 
 	approvalKey string
 	accessKey   string
+	appKey 	    string
+	setretKey   string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -98,6 +99,8 @@ func New(c *resolver.ConfigMap) (*Client, error) {
 
 	instance.approvalKey = approvalKey
 	instance.accessKey = accessKey
+	instance.appKey = appkey
+	instance.setretKey = secretkey
 
 	instance.wg.Add(1)
 	go instance.runReader(instance.ctx, &instance.wg)
@@ -285,7 +288,7 @@ func (c *Client) IssueAccessToken(ctx context.Context, appkey string, appsecret 
 			select {
 			case <- ctx.Done():
 				return "", errors.Join(ctx.Err(), err)
-			case <- time.After(time.Second * 60):
+			case <- time.After(time.Second * 10):
 				return c.IssueAccessToken(ctx, appkey, appsecret)
 			}
 		}
@@ -349,14 +352,24 @@ func (c *Client) subscribeProduct(symbol string) error {
 
 
 func (c *Client) IsMarketOn(ctx context.Context) (bool, error) {
-	
-	req, err := http.NewRequestWithContext(ctx, "GET", isHolidayURL, nil)
+
+	kst := time.FixedZone("KST", 9*60*60)
+	now := time.Now().In(kst)
+
+	date := now.Format("20060102")
+	url := fmt.Sprintf("%s?BASS_DT=%s&CTX_AREA_NK=&CTX_AREA_FK=", checkHolidayURL, date)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return false, err
 	}
 
 	req.Header.Set("content-type", "application/json; charset=utf-8")
-	req.Header.Set("approval_key", c.approvalKey)
+	req.Header.Set("authorization", fmt.Sprintf("Bearer %s", c.accessKey))
+	req.Header.Set("appkey", c.appKey)
+	req.Header.Set("appsecret", c.setretKey)
+	req.Header.Set("tr_id", "CTCA0903R")
+	req.Header.Set("custtype", custtype)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -370,8 +383,24 @@ func (c *Client) IsMarketOn(ctx context.Context) (bool, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf(string(body))
+		return false, errors.Join(fmt.Errorf(string(body)), err) 
 	}
 
-	return false, nil
+	var res CheckHolidayResponse
+	if err := json.Unmarshal(body, &res); err != nil {
+		return false, err
+	}
+
+	if len(res.Output) == 0 {
+		return false, fmt.Errorf("output is empty")
+	}
+
+	if res.Output[0].BzdyYn == "N" || res.Output[0].TrDayYn == "N" || res.Output[0].OpndYn == "N" {
+		return false, nil
+	}
+
+	start := time.Date(now.Year(), now.Month(), now.Day(), 9, 0, 0, 0, kst)
+    end := time.Date(now.Year(), now.Month(), now.Day(), 15, 30, 0, 0, kst)
+
+	return (now.After(start) && now.Before(end)), nil
 }
