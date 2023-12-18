@@ -34,6 +34,8 @@ func TeardownOptionClient(c *polygon.OptionClient) {
 
 func TestOptionClient(t *testing.T) {
 
+	t.Skip("Skipping the test, since it does not have privileges to access option api")
+
 	c := SetupOptionClient()
 	defer TeardownOptionClient(c)
 
