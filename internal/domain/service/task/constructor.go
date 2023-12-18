@@ -114,13 +114,6 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-/*
-	var productsFiltered []*vo.Product
-	linq.From(products).WhereT(func(product vo.Product) bool {
-		return product.Platform == m.worker.Platform
-	}).ToSlice(&productsFiltered)
-*/
-	m.s.CreateConnection(ctx, m.worker.ID)
 
 	var pipeErr error
 	if !isSecondary {
@@ -180,7 +173,6 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 			timestamp = time.Now().Add(- time.Second * 5)
 			if err := m.s.UpdateWorkerStatusExited(ctx, m.primaryID, vo.WorkerStatusExitedTTlFailed, timestamp); err != nil {
-				fmt.Println("TTLFailed UpdateWorkerStatusExited")
 				return false, err
 			}
 

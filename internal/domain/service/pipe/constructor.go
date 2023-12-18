@@ -79,8 +79,14 @@ func (m *Manager) connectInputPipe(ctx context.Context, products []*vo.Product) 
 
 	m.input, err = m.f.InputStream(ctx, symbols...)
 
+	symbolToID := make(map[string]string)
+	for _, product := range products {
+		symbolToID[product.Symbol] = product.ID
+	}
+
 	go func ()  {
 		for v := range m.input {
+			v.ID = symbolToID[v.Symbol]
 			*m.arbiter <- v
 		}
 	}()
