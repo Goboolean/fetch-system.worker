@@ -43,6 +43,14 @@ type Manager struct {
 	wg sync.WaitGroup
 }
 
+type Handler interface {
+	Close()
+	LockupPipe(timestamp time.Time)
+	RunStoringPipe(ctx context.Context, products []*vo.Product) error
+	RunStreamingPipe(ctx context.Context, products []*vo.Product) error
+	UpgradeToStreamingPipe(timestamp time.Time)
+}
+
 func New(f out.DataFetcher, d out.DataDispatcher) *Manager {
 	instance := &Manager{
 		f: f,
@@ -56,7 +64,7 @@ func New(f out.DataFetcher, d out.DataDispatcher) *Manager {
 	return instance
 }
 
-func (m *Manager) Close(ctx context.Context) {
+func (m *Manager) Close() {
 	if m.isBufferEmptyRunning {
 		m.cancelBufferEmpty()		
 	}
@@ -71,8 +79,14 @@ func (m *Manager) connectInputPipe(ctx context.Context, products []*vo.Product) 
 
 	m.input, err = m.f.InputStream(ctx, symbols...)
 
+	symbolToID := make(map[string]string)
+	for _, product := range products {
+		symbolToID[product.Symbol] = product.ID
+	}
+
 	go func ()  {
 		for v := range m.input {
+			v.ID = symbolToID[v.Symbol]
 			*m.arbiter <- v
 		}
 	}()

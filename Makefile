@@ -4,3 +4,6 @@ test-app:
 
 build-image:
 	docker build -t fetch-system-worker -f ./build/Dockerfile .
+
+generate-wire:
+	wire cmd/inject/main.go

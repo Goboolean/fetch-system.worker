@@ -54,7 +54,8 @@ func TestKeepAlive(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 
-		client.UpdateWorkerStatus(context.Background(), worker.ID, "dead")
+		err := client.UpdateWorkerStatus(context.Background(), worker.ID, "dead")
+		assert.NoError(t, err)
 
 		select {
 		case <-ctx.Done():

@@ -83,10 +83,10 @@ func Test_Worker(t *testing.T) {
 func Test_Product(t *testing.T) {
 
 	var products []*etcd.Product = []*etcd.Product{
-		{ID: "test.goboolean.kor", Platform: "kis",      Symbol: "goboolean", Type: "stock" },
-		{ID: "test.goboolean.eng", Platform: "polygon",  Symbol: "gofalse",   Type: "crypto"},
-		{ID: "test.goboolean.jpn", Platform: "buycycle", Symbol: "gonil",     Type: "option"},
-		{ID: "test.goboolean.chi", Platform: "kis",      Symbol: "gotrue",    Type: "future"},
+		{ID: "test.goboolean.kor", Platform: "kis",      Symbol: "goboolean", Market: "stock",  Locale: "kor"},
+		{ID: "test.goboolean.eng", Platform: "polygon",  Symbol: "gofalse",   Market: "crypto", Locale: "usa"},
+		{ID: "test.goboolean.jpn", Platform: "polygon", Symbol: "gonil",     Market: "option", Locale: "usa"},
+		{ID: "test.goboolean.chi", Platform: "kis",      Symbol: "gotrue",    Market: "stock", Locale: "kor"},
 	}
 
 	t.Run("InsertProducts", func(t *testing.T) {
@@ -100,6 +100,24 @@ func Test_Product(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, p, product)
 		}
+	})
+
+	t.Run("GetProductsWithCondition", func(t *testing.T) {
+		result, err := client.GetProductsWithCondition(context.Background(), "kis", "stock", "kor")
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(result))
+
+		result, err = client.GetProductsWithCondition(context.Background(), "", "", "")
+		assert.NoError(t, err)
+		assert.Equal(t, len(products), len(result))
+
+		result, err = client.GetProductsWithCondition(context.Background(), "kis", "stock", "")
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(result))
+
+		result, err = client.GetProductsWithCondition(context.Background(), "polygon", "", "")
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(result))
 	})
 
 	t.Run("DeleteProduct", func(t *testing.T) {

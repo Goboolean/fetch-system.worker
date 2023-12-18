@@ -2,7 +2,6 @@ package polygon_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -54,7 +53,7 @@ func TestCryptoClient(t *testing.T) {
 
 		time.Sleep(time.Second * 1)
 
-		fmt.Println(len(ch))
+		t.Log("ch size:", len(ch))
 	})
 	
 }

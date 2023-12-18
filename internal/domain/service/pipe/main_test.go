@@ -34,7 +34,9 @@ type MockReceiver struct {
 	cancel context.CancelFunc
 
 	received int
+	receivedByID map[string]int
 }
+
 
 func (m *MockReceiver) OutputStream(ch <-chan *vo.Trade) error {
 	go func() {
@@ -42,8 +44,9 @@ func (m *MockReceiver) OutputStream(ch <-chan *vo.Trade) error {
 			select {
 			case <-m.ctx.Done():
 				return
-			case <- ch:
+			case v := <- ch:
 				m.received++
+				m.receivedByID[v.Symbol]++
 				continue
 			}
 		}
@@ -56,11 +59,16 @@ func NewMockReceiver() *MockReceiver {
 	return &MockReceiver{
 		ctx: ctx,
 		cancel: cancel,
+		receivedByID: make(map[string]int),
 	}
 }
 
 func (m *MockReceiver) Received() int {
 	return m.received
+}
+
+func (m *MockReceiver) ReceivedByID(id string) int {
+	return m.receivedByID[id]
 }
 
 func (m *MockReceiver) Initialize() {

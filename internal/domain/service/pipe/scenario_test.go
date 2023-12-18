@@ -93,3 +93,33 @@ func TestStoringPipe(t *testing.T) {
 		receiver.Initialize()
 	})
 }
+
+
+func TestSymbolToID(t *testing.T) {
+
+	var p1 = vo.Product{ Symbol: "AAPL", Market: "STOCK", Locale: "USA"}
+	var p2 = vo.Product{ Symbol: "TSLA", Market: "STOCK", Locale: "USA"}
+	var products = []*vo.Product{&p1, &p2}
+
+	fetcher := SetupMockGenerator(1000)
+	receiver := NewMockReceiver()
+
+	p := pipe.New(fetcher, receiver)
+
+	duration := time.Millisecond * 100
+
+	t.Run("RunPipe", func(t *testing.T) {
+		err := p.RunStreamingPipe(context.Background(), products)
+		assert.NoError(t, err)
+
+		time.Sleep(duration)
+
+		assert.LessOrEqual(t, 170, receiver.Received())
+		assert.GreaterOrEqual(t, 210, receiver.Received())
+	})
+
+	t.Run("Verify Result", func(t *testing.T) {
+		assert.NotZero(t, receiver.ReceivedByID("AAPL"))
+		assert.NotZero(t, receiver.ReceivedByID("TSLA"))
+	})
+}

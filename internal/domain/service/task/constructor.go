@@ -9,7 +9,6 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/pipe"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
-	"github.com/ahmetb/go-linq/v3"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +21,7 @@ var ConfigTimeout = 3 * time.Second
 
 type Manager struct {
 	s out.StorageHandler
-	p *pipe.Stub
+	p pipe.Handler
 
 	worker *vo.Worker
 	primaryID string
@@ -38,13 +37,17 @@ type Manager struct {
 
 
 
-func New(worker *vo.Worker, s out.StorageHandler, p *pipe.Stub) (*Manager, error) {
+func New(worker *vo.Worker, s out.StorageHandler, p pipe.Handler) (*Manager, error) {
 	if worker.ID == "" {
 		return nil, fmt.Errorf("worker id is empty")
 	}
 
 	if worker.Platform == "" {
 		return nil, fmt.Errorf("worker platform is empty")
+	}
+
+	if worker.Market == "" {
+		return nil, fmt.Errorf("worker market is empty")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -107,23 +110,16 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		return err
 	}
 
-	products, err := m.s.GetAllProducts(ctx)
+	products, err := m.s.GetProducts(ctx, m.worker.Platform, m.worker.Market)
 	if err != nil {
 		return err
 	}
 
-	var productsFiltered []*vo.Product
-	linq.From(products).WhereT(func(product vo.Product) bool {
-		return product.Platform == m.worker.Platform
-	}).ToSlice(&productsFiltered)
-
-	m.s.CreateConnection(ctx, m.worker.ID)
-
 	var pipeErr error
 	if !isSecondary {
-		pipeErr = m.p.RunStreamingPipe(ctx, productsFiltered)
+		pipeErr = m.p.RunStreamingPipe(ctx, products)
 	} else {
-		pipeErr = m.p.RunStoringPipe(ctx, productsFiltered)
+		pipeErr = m.p.RunStoringPipe(ctx, products)
 	}
 
 	if pipeErr != nil {
@@ -177,7 +173,6 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 			timestamp = time.Now().Add(- time.Second * 5)
 			if err := m.s.UpdateWorkerStatusExited(ctx, m.primaryID, vo.WorkerStatusExitedTTlFailed, timestamp); err != nil {
-				fmt.Println("TTLFailed UpdateWorkerStatusExited")
 				return false, err
 			}
 
@@ -211,6 +206,11 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 	return true, nil
 }
 
+
+func (m *Manager) Cease() error {
+	m.p.Close()
+	return nil
+}
 
 
 func (m *Manager) Shutdown() error {
@@ -270,4 +270,9 @@ func (m *Manager) trackChan() {
 				continue
 		}
 	}
+}
+
+
+func (m *Manager) OnConnectionFailed() <-chan struct{} {
+	return m.connCh
 }

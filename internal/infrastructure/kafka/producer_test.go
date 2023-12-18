@@ -24,17 +24,6 @@ func SetupProducer() *kafka.Producer {
 	return p
 }
 
-func SetupProducerWithRegistry() *kafka.Producer {
-	p, err := kafka.NewProducer(&resolver.ConfigMap{
-		"BOOTSTRAP_HOST": os.Getenv("KAFKA_BOOTSTRAP_HOST"),
-		"REGISTRY_HOST":  os.Getenv("KAFKA_REGISTRY_HOST"),
-	})
-	if err != nil {
-		panic(err)
-	}
-	return p
-}
-
 func TeardownProducer(p *kafka.Producer) {
 	p.Close()
 }

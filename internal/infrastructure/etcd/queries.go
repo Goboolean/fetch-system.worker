@@ -194,6 +194,35 @@ func (c *Client) InsertProducts(ctx context.Context, p []*Product) error {
 	return nil
 }
 
+func (c *Client) UpsertProducts(ctx context.Context, p []*Product) error {
+
+	var ops []clientv3.Op
+
+	for _, v := range p {
+		payload, err := etcdutil.Serialize(v)
+		if err != nil {
+			return err
+		}
+		for k, v := range payload {
+			ops = append(ops, clientv3.OpPut(k, v))
+		}
+	}
+
+	resp, err := c.client.Txn(ctx).
+		Then(ops...).
+		Commit()
+
+	if err != nil {
+		return err
+	}
+	if flag := resp.Succeeded; !flag {
+		return ErrObjectExists
+	}
+	return nil
+}
+
+
+
 func (c *Client) GetProduct(ctx context.Context, id string) (*Product, error) {
 
 	resp, err := c.client.Get(context.Background(), etcdutil.Identifier("product", id), clientv3.WithPrefix())
@@ -238,7 +267,48 @@ func (c *Client) GetAllProducts(ctx context.Context) ([]*Product, error) {
 	return p, nil
 }
 
+func (c *Client) GetProductsWithCondition(ctx context.Context, platform string, market string, locale string) ([]*Product, error) {
+
+	resp, err := c.client.Get(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+	m := etcdutil.PayloadToMap(resp)
+
+	list, err := etcdutil.GroupByPrefix(m)
+	if err != nil {
+		return nil, err
+	}
+
+	var p []*Product = make([]*Product, 0)
+	for _, v := range list {
+		var product Product
+		if err := etcdutil.Deserialize(v, &product); err != nil {
+			return nil, err
+		}
+
+		if platform != "" && product.Platform != platform {
+			continue
+		}
+		if market != "" && product.Market != market {
+			continue
+		}
+		if locale != "" && product.Locale != locale {
+			continue
+		}
+
+		p = append(p, &product)
+	}
+	return p, nil
+}
+
+
 func (c *Client) DeleteProduct(ctx context.Context, id string) error {
 	_, err := c.client.Delete(context.Background(), etcdutil.Identifier("product", id), clientv3.WithPrefix())
+	return err
+}
+
+func (c *Client) DeleteAllProducts(ctx context.Context) error {
+	_, err := c.client.Delete(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
 	return err
 }
