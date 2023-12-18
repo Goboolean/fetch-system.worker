@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Goboolean/fetch-system.worker/cmd/inject"
+	"github.com/Goboolean/fetch-system.worker/cmd/wire"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/pipe"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/task"
@@ -38,7 +38,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Run etcd", func(tt *testing.T) {
 		var cleanup func()
 
-		etcd, cleanup, err = inject.InitializeETCDClient()
+		etcd, cleanup, err = wire.InitializeETCDClient()
 		assert.NoError(tt, err)
 
 		t.Cleanup(cleanup)
@@ -47,7 +47,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Run kafka", func(tt *testing.T) {
 		var cleanup func()
 
-		kafka, cleanup, err = inject.InitializeKafkaProducer()
+		kafka, cleanup, err = wire.InitializeKafkaProducer()
 		assert.NoError(tt, err)
 
 		t.Cleanup(cleanup)
@@ -56,7 +56,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Run fetcher", func(tt *testing.T) {
 		var cleanup func()
 
-		fetcher, cleanup, err = inject.InitializeFetcher()
+		fetcher, cleanup, err = wire.InitializeFetcher()
 		assert.NoError(tt, err)
 
 		t.Cleanup(cleanup)
@@ -64,13 +64,13 @@ func TestMainScenario(t *testing.T) {
 
 	t.Run("Run pipe manager", func(t *testing.T) {
 		var err error
-		pipeManager, err = inject.InitializePipeManager(kafka, fetcher)
+		pipeManager, err = wire.InitializePipeManager(kafka, fetcher)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Run task manager", func(t *testing.T) {
 		var err error
-		taskManager, err = inject.InitializeTaskManager(pipeManager, etcd)
+		taskManager, err = wire.InitializeTaskManager(pipeManager, etcd)
 		assert.NoError(t, err)
 	})
 

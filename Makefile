@@ -1,9 +1,9 @@
 test-app:
-	@docker compose -p fetch-system-worker -f ./build/docker-compose.test.yml up --attach server --build --abort-on-container-exit
-	@docker compose -f ./build/docker-compose.test.yml down
+	@docker compose -p fetch-system-worker -f ./deploy/docker-compose.test.yml up --attach server --build --abort-on-container-exit
+	@docker compose -f ./deploy/docker-compose.test.yml down
 
 build-image:
-	docker build -t fetch-system-worker -f ./build/Dockerfile .
+	docker build -t fetch-system-worker -f ./deploy/Dockerfile .
 
 generate-wire:
-	wire cmd/inject/main.go
+	wire cmd/wire/wire_setup.go

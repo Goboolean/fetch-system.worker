@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Goboolean/fetch-system.worker/cmd/inject"
+	"github.com/Goboolean/fetch-system.worker/cmd/wire"
 
 	_ "github.com/Goboolean/common/pkg/env"
 )
@@ -21,31 +21,31 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	kafka, cleanup, err := inject.InitializeKafkaProducer()
+	kafka, cleanup, err := wire.InitializeKafkaProducer()
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	etcd, cleanup, err := inject.InitializeETCDClient()
+	etcd, cleanup, err := wire.InitializeETCDClient()
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	fetcher, cleanup, err := inject.InitializeFetcher()
+	fetcher, cleanup, err := wire.InitializeFetcher()
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	pipeManager, err := inject.InitializePipeManager(kafka, fetcher)
+	pipeManager, err := wire.InitializePipeManager(kafka, fetcher)
 	if err != nil {
 		panic(err)
 	}
 	defer pipeManager.Close()
 
-	taskManager, err := inject.InitializeTaskManager(pipeManager, etcd)
+	taskManager, err := wire.InitializeTaskManager(pipeManager, etcd)
 	if err != nil {
 		panic(err)
 	}
