@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package inject
+package wire
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 	"os"
 )
 
-// Injectors from main.go:
+// Injectors from wire.go:
 
 func InitializeKafkaProducer() (out.DataDispatcher, func(), error) {
 	configMap := ProvideKafkaConfig()
@@ -134,7 +134,7 @@ func InitializeTaskManager(handler pipe.Handler, storageHandler out.StorageHandl
 	return manager, nil
 }
 
-// main.go:
+// wire.go:
 
 func ProvideOtelConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{

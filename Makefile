@@ -6,4 +6,4 @@ build-image:
 	docker build -t fetch-system-worker -f ./build/Dockerfile .
 
 generate-wire:
-	wire cmd/inject/main.go
+	wire cmd/wire/wire_setup.go
