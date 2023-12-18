@@ -51,3 +51,14 @@ func NewStocksClient(c *resolver.ConfigMap) (*StocksClient, error) {
 func (c *StocksClient) Subscribe() (<-chan models.EquityTrade, error) {
 	return c.client.Subscribe()
 }
+
+
+func (c *StocksClient) IsMarketOn(ctx context.Context) (bool, error) {
+	
+	resp, err := c.rest.GetMarketStatus(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return (resp.Market == "open"), nil
+}

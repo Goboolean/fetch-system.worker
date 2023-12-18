@@ -7,12 +7,14 @@ import (
 	"github.com/Goboolean/common/pkg/resolver"
 	"github.com/polygon-io/client-go/websocket"
 	"github.com/polygon-io/client-go/websocket/models"
+	polygonrest "github.com/polygon-io/client-go/rest"
 )
 
 
 
 type client[T models.EquityTrade | models.CryptoTrade] struct {
 	conn  *polygonws.Client
+	rest  *polygonrest.Client
 
 	ch chan T
 
@@ -85,9 +87,12 @@ func newClient[T models.EquityTrade | models.CryptoTrade](c *resolver.ConfigMap)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	rest := polygonrest.New(key)
+
 	return &client[T]{
 		conn: conn,
 		ch: make(chan T, buf),
+		rest: rest,
 
 		ctx: ctx,
 		cancel: cancel,
@@ -129,3 +134,4 @@ func (c *client[T]) Subscribe() (<-chan T, error) {
 
 	return c.ch, nil
 }
+

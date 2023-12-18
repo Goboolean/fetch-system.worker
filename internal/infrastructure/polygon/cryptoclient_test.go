@@ -53,7 +53,11 @@ func TestCryptoClient(t *testing.T) {
 
 		time.Sleep(time.Second * 1)
 
-		t.Log("ch size:", len(ch))
-	})
-	
+		on, err := c.IsMarketOn(context.Background())
+		assert.NoError(t, err)
+		if on {
+			assert.NotZero(t, len(ch))
+			t.Log("ch size:", len(ch))
+		}
+	})	
 }

@@ -50,3 +50,15 @@ func NewOptionClient(c *resolver.ConfigMap) (*OptionClient, error) {
 func (c *OptionClient) Subscribe() (<-chan models.EquityTrade, error) {
 	return c.client.Subscribe()
 }
+
+func (c *OptionClient) IsMarketOn(ctx context.Context) (bool, error) {
+	
+	resp, err := c.rest.GetMarketStatus(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return (resp.Exchanges["nasdaq"] == "open" &&
+			resp.Exchanges["nyse"] == "open" &&
+			resp.Exchanges["otc"] == "open"), nil
+}
