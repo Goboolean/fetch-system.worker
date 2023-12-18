@@ -48,7 +48,21 @@ func NewProducer(c *resolver.ConfigMap) (*Producer, error) {
 		cancel:   cancel,
 	}
 
-	instance.traceEvent(ctx, &instance.wg)
+	trace, err := c.GetStringKey("TRACER")
+	if err != nil {
+		return nil, err
+	}
+
+	switch trace {
+	case "otel":
+		instance.traceOtelEvent(ctx, &instance.wg)
+		break
+	case "none":
+		instance.traceEvent(ctx, &instance.wg)
+		break
+	default:
+		return nil, fmt.Errorf("invalid trace option: %s", trace)
+	}
 	return instance, nil
 }
 
@@ -90,7 +104,19 @@ func (p *Producer) Flush(ctx context.Context) (int, error) {
 	return 0, nil
 }
 
+
+
 func (p *Producer) traceEvent(ctx context.Context, wg *sync.WaitGroup) {
+
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+
+		for range p.producer.Events() {}
+	}()
+}
+
+func (p *Producer) traceOtelEvent(ctx context.Context, wg *sync.WaitGroup) {
 
 	go func() {
 		wg.Add(1)
@@ -110,6 +136,7 @@ func (p *Producer) traceEvent(ctx context.Context, wg *sync.WaitGroup) {
 		}
 	}()
 }
+
 
 func (p *Producer) Close() {
 	p.producer.Close()

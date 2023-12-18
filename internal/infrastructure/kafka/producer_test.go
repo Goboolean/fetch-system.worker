@@ -17,6 +17,7 @@ import (
 func SetupProducer() *kafka.Producer {
 	p, err := kafka.NewProducer(&resolver.ConfigMap{
 		"BOOTSTRAP_HOST": os.Getenv("KAFKA_BOOTSTRAP_HOST"),
+		"TRACER":          "none",
 	})
 	if err != nil {
 		panic(err)

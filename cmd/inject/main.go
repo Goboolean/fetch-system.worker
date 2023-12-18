@@ -33,6 +33,7 @@ func ProvideOtelConfig() *resolver.ConfigMap {
 func ProvideKafkaConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"BOOTSTRAP_HOST": os.Getenv("KAFKA_BOOTSTRAP_HOST"),
+		"TRACER":         "otel",
 	}
 }
 
