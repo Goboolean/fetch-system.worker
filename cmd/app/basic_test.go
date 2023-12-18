@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	_ "github.com/Goboolean/common/pkg/env"
+	_ "github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
 )
 
 

@@ -22,9 +22,17 @@ import (
 
 
 
+func ProvideOtelConfig() *resolver.ConfigMap {
+	return &resolver.ConfigMap{
+		"OTEL_ENDPOINT": os.Getenv("OTEL_ENDPOINT"),
+	}
+}
+
+
 func ProvideKafkaConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"BOOTSTRAP_HOST": os.Getenv("KAFKA_BOOTSTRAP_HOST"),
+		"TRACER":         "otel",
 	}
 }
 
