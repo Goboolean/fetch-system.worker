@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -18,7 +19,10 @@ import (
 
 const (
 	host = "ops.koreainvestment.com:21000"
-	keyIssueURL = "https://openapi.koreainvestment.com:9443/oauth2/Approval"
+	approvalKeyIssueURL = "https://openapi.koreainvestment.com:9443/oauth2/Approval"
+	tokenIssueURL = "https://openapivts.koreainvestment.com:29443/oauth2/tokenP"
+
+	isHolidayURL = "https://openapi.koreainvestment.com:9443//uapi/domestic-stock/v1/quotations/chk-holiday"
 )
 
 const (
@@ -32,6 +36,7 @@ type Client struct {
 	conn *websocket.Conn
 
 	approvalKey string
+	accessKey   string
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -181,7 +186,7 @@ func (c *Client) GetApprovalKey(Appkey string, Secretkey string) (string, error)
 		return "", err
 	}
 
-	response, err := http.Post(keyIssueURL, "application/json", bytes.NewBuffer(jsonData))
+	response, err := http.Post(approvalKeyIssueURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", err
 	}
@@ -199,10 +204,78 @@ func (c *Client) GetApprovalKey(Appkey string, Secretkey string) (string, error)
 	}
 
 	if res.ApprovalKey == "" {
-		return res.ApprovalKey, errors.New("invalid request")
+		return res.ApprovalKey, fmt.Errorf("approval key is empty")
 	}
 
 	return res.ApprovalKey, nil
+}
+
+
+func (c *Client) issueAccessToken(ctx context.Context, appkey string, appsecret string) (string, bool, error) {
+
+	var retryable bool = false
+
+	jsonData, err := json.Marshal(AccessKeyRequestBodyJson{
+		GrantType: "client_credentials",
+		AppKey:    appkey,
+		AppSecret: appsecret,
+	})
+	if err != nil {
+		return "", retryable, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", tokenIssueURL, bytes.NewBuffer(jsonData))
+	req.Header.Set("content-type", "application/json; charset=utf-8")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", retryable, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", retryable, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var res AccessKeyErrorResponseJson
+		if err := json.Unmarshal(body, &res); err != nil {
+			return "", retryable, err
+		}
+
+		if res.ErrorCode == "EGW00133" {
+			retryable = true
+		}
+		return "", retryable, fmt.Errorf(string(body))
+	}
+
+	var res AccessKeyResponseBodyJson
+	if err := json.Unmarshal(body, &res); err != nil {
+		return "", retryable, err
+	}
+
+	if res.AccessToken == "" {
+		return "", retryable, fmt.Errorf("access token is empty")
+	}
+
+	return res.AccessToken, retryable, nil
+}
+
+func (c *Client) IssueAccessToken(ctx context.Context, appkey string, appsecret string) (string, error){
+	token, retryable, err := c.issueAccessToken(ctx, appkey, appsecret)
+	if err != nil {
+		if retryable {
+			select {
+			case <- ctx.Done():
+				return "", errors.Join(ctx.Err(), err)
+			case <- time.After(time.Second * 60):
+				return c.IssueAccessToken(ctx, appkey, appsecret)
+			}
+		}
+	}
+
+	return token, err
 }
 
 
@@ -243,7 +316,7 @@ func (c *Client) subscribeProduct(symbol string) error {
 			ContentType: "utf-8",
 		},
 		Body: RequestBodyJson{
-			Input: RequestInputJson{
+			Input: RequestInput{
 				TrId:  "H0STCNT0", // "HDFSCNT0",
 				TrKey: symbol,
 			},
@@ -255,4 +328,34 @@ func (c *Client) subscribeProduct(symbol string) error {
 	}
 
 	return nil
+}
+
+
+
+func (c *Client) IsMarketOn(ctx context.Context) (bool, error) {
+	
+	req, err := http.NewRequestWithContext(ctx, "GET", isHolidayURL, nil)
+	if err != nil {
+		return false, err
+	}
+
+	req.Header.Set("content-type", "application/json; charset=utf-8")
+	req.Header.Set("approval_key", c.approvalKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf(string(body))
+	}
+
+	return false, nil
 }

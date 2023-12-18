@@ -1,8 +1,10 @@
 package kis
 
 import (
+	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,5 +37,29 @@ func TestGetApprovalKey(t *testing.T) {
 		assert.NotEmpty(t, key2)
 
 		assert.NotEqual(t, key1, key2)
+	})
+}
+
+
+
+func TestIssueToken(t *testing.T) {
+
+	var client *Client
+
+	t.Run("IssueToken (case:fail)", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 1)
+		defer cancel()
+
+		_, err := client.IssueAccessToken(ctx, "", "")
+		assert.Error(t, err)
+	})
+
+	t.Run("IssueToken (case:success)", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 100)
+		defer cancel()
+
+		token, err := client.IssueAccessToken(ctx, os.Getenv("KIS_APPKEY"), os.Getenv("KIS_SECRET"))
+		assert.NoError(t, err)
+		assert.NotEmpty(t, token)
 	})
 }
