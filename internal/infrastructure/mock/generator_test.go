@@ -25,10 +25,10 @@ func TestRunGenerator(t *testing.T) {
 	ch := make(chan *mock.Trade, count * 2)
 
 	ctx, cancel := context.WithTimeout(context.Background(), deadline)
-	defer cancel()
 	wg := sync.WaitGroup{}
 
 	// runs until the deadline
+	wg.Add(1)
 	go mock.RunGenerator(ctx, &wg, symbol, duration, ch)
 
 	time.Sleep(deadline)
@@ -37,4 +37,7 @@ func TestRunGenerator(t *testing.T) {
 	// assures 99% accuracy 
 	assert.LessOrEqual(t, int(count * 0.85), len(ch))
 	assert.GreaterOrEqual(t, int(count * 1), len(ch))
+
+	cancel()
+	wg.Wait()
 }

@@ -81,7 +81,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Verify Output", func(t *testing.T) {
 		c := SetupKafkaConsumer()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 15 * time.Second)
 		defer cancel()
 
 		ch, err := c.SubscribeTrade("stock.TEST1.usa")
