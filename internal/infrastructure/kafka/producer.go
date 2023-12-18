@@ -8,6 +8,7 @@ import (
 
 	"github.com/Goboolean/common/pkg/resolver"
 	"github.com/Goboolean/fetch-system.IaC/pkg/model"
+	"github.com/Goboolean/fetch-system.worker/internal/util/otel"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"google.golang.org/protobuf/proto"
 )
@@ -95,7 +96,18 @@ func (p *Producer) traceEvent(ctx context.Context, wg *sync.WaitGroup) {
 		wg.Add(1)
 		defer wg.Done()
 
-		for range p.producer.Events() {}
+		for e := range p.producer.Events() {
+			switch ev := e.(type) {
+			case *kafka.Message:
+				if ev.TopicPartition.Error != nil {
+					otel.KafkaProducerErrorCount.Add(ctx, 1)
+				} else {
+					otel.KafkaProducerSuccessCount.Add(ctx, 1)
+				}
+			case *kafka.Error:
+				otel.KafkaProducerErrorCount.Add(ctx, 1)
+			}
+		}
 	}()
 }
 

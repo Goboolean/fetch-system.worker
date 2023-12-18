@@ -34,6 +34,15 @@ func TestMainScenario(t *testing.T) {
 		taskManager *task.Manager
 	)
 
+	t.Run("Run otel", func(tt *testing.T) {
+		var cleanup func()
+
+		_, cleanup, err := inject.InitializeOtelExporter()
+		assert.NoError(tt, err)
+
+		t.Cleanup(cleanup)
+	})
+
 	t.Run("Run etcd", func(tt *testing.T) {
 		var cleanup func()
 

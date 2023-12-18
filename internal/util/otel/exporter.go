@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"google.golang.org/grpc"
 )
 
 type Wrapper struct {
@@ -50,7 +51,12 @@ func initProvider(ctx context.Context, host string) (func(context.Context) error
 		return nil, err
 	}
 
-	exporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithEndpoint(host))
+	conn, err := grpc.DialContext(ctx, host, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+
+	exporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
 	if err != nil {
 		return nil, err
 	}
@@ -60,9 +66,19 @@ func initProvider(ctx context.Context, host string) (func(context.Context) error
 		metric.WithReader(metric.NewPeriodicReader(exporter,
 			metric.WithInterval(1 * time.Second))))
 
-	meterProvider.Meter("example")
+	meter := meterProvider.Meter("example")
 
 	otel.SetMeterProvider(meterProvider)
+
+	KafkaProducerSuccessCount, err = meter.Int64Counter("kafka_producer_success_count")
+	if err != nil {
+		return nil, err
+	}
+
+	KafkaProducerErrorCount, err = meter.Int64Counter("kafka_producer_error_count")
+	if err != nil {
+		return nil, err
+	}
 
 	return meterProvider.Shutdown, nil
 }
