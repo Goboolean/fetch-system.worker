@@ -86,12 +86,18 @@ func New(c *resolver.ConfigMap) (*Client, error) {
 		return nil, err
 	}
 
-	approvalKey, err := instance.GetApprovalKey(appkey, secretkey)
+	approvalKey, err := instance.GetApprovalKey(ctx, appkey, secretkey)
+	if err != nil {
+		return nil, err
+	}
+
+	accessKey, err := instance.IssueAccessToken(ctx, appkey, secretkey)
 	if err != nil {
 		return nil, err
 	}
 
 	instance.approvalKey = approvalKey
+	instance.accessKey = accessKey
 
 	instance.wg.Add(1)
 	go instance.runReader(instance.ctx, &instance.wg)
@@ -175,30 +181,40 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 
-func (c *Client) GetApprovalKey(Appkey string, Secretkey string) (string, error) {
-	data := &getApprovalKeyReqeust{
+func (c *Client) GetApprovalKey(ctx context.Context, Appkey string, Secretkey string) (string, error) {
+
+	jsonData, err := json.Marshal(getApprovalKeyReqeust{
 		GrantType: "client_credentials",
 		AppKey:    Appkey,
 		SecretKey: Secretkey,
-	}
-	jsonData, err := json.Marshal(data)
+	})
 	if err != nil {
 		return "", err
 	}
 
-	response, err := http.Post(approvalKeyIssueURL, "application/json", bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, "POST", approvalKeyIssueURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err	
+	}
+
+	req.Header.Set("content-type", "application/json; charset=utf-8")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf(string(body))
 	}
 
 	var res getApprovalKeyResponse
-
 	if err := json.Unmarshal(body, &res); err != nil {
 		return "", err
 	}
