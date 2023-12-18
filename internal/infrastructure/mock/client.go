@@ -3,6 +3,7 @@ package mock
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Goboolean/common/pkg/resolver"
@@ -13,6 +14,7 @@ import (
 type Client struct {
 	ctx context.Context
 	cancel context.CancelFunc
+	wg sync.WaitGroup
 
 	config struct {
 		mode string
@@ -88,14 +90,16 @@ func (c *Client) Subscribe(symbols ...string) <-chan *Trade {
 	if len(symbols) == 0 {
 		for i := 0; i < c.config.cnt; i++ {
 			dur := time.Second / time.Duration(c.config.rate)
-			go RunGenerator(c.ctx, Symbol(), dur, c.ch)
+			c.wg.Add(1)
+			go RunGenerator(c.ctx, &c.wg, Symbol(), dur, c.ch)
 		}		
 	}
 
 	if len(symbols) > 0 {
 		for _, symbol := range symbols {
 			dur := time.Second / time.Duration(c.config.rate)
-			go RunGenerator(c.ctx, symbol, dur, c.ch)
+			c.wg.Add(1)
+			go RunGenerator(c.ctx, &c.wg, symbol, dur, c.ch)
 		}
 	}
 
@@ -104,4 +108,5 @@ func (c *Client) Subscribe(symbols ...string) <-chan *Trade {
 
 func (c *Client) Close() {
 	c.cancel()
+	c.wg.Wait()
 }

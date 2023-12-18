@@ -3,6 +3,7 @@ package mock
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -42,7 +43,8 @@ func (m *generator) Next() *Trade {
 	return trade
 }
 
-func RunGenerator(ctx context.Context, id string, d time.Duration, ch chan<- *Trade) {
+func RunGenerator(ctx context.Context, wg *sync.WaitGroup, id string, d time.Duration, ch chan<- *Trade) {
+	defer wg.Done()
 
 	g := newGenerator(id, d)
 	ch <- g.Next()

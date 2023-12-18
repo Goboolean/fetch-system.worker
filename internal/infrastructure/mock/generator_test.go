@@ -2,6 +2,7 @@ package mock_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,9 +26,10 @@ func TestRunGenerator(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), deadline)
 	defer cancel()
+	wg := sync.WaitGroup{}
 
 	// runs until the deadline
-	go mock.RunGenerator(ctx, symbol, duration, ch)
+	go mock.RunGenerator(ctx, &wg, symbol, duration, ch)
 
 	time.Sleep(deadline)
 	time.Sleep(time.Millisecond * 10)
