@@ -39,6 +39,8 @@ type Client struct {
 	appKey 	    string
 	setretKey   string
 
+	mode        string
+
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -92,18 +94,30 @@ func New(c *resolver.ConfigMap) (*Client, error) {
 		return nil, err
 	}
 
-	accessKey, err := instance.IssueAccessToken(ctx, appkey, secretkey)
+	instance.approvalKey = approvalKey
+	instance.appKey = appkey
+	instance.setretKey = secretkey
+
+	mode, flag, err := c.GetStringKeyOptional("MODE")
 	if err != nil {
 		return nil, err
 	}
 
-	instance.approvalKey = approvalKey
-	instance.accessKey = accessKey
-	instance.appKey = appkey
-	instance.setretKey = secretkey
+	if flag {
+		switch mode {
+		case "PRODUCTION":
+			instance.accessKey, err = instance.IssueAccessToken(ctx, appkey, secretkey)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			break
+		}
+	}
 
 	instance.wg.Add(1)
 	go instance.runReader(instance.ctx, &instance.wg)
+
 	return instance, nil
 }
 
@@ -227,6 +241,11 @@ func (c *Client) GetApprovalKey(ctx context.Context, Appkey string, Secretkey st
 	}
 
 	return res.ApprovalKey, nil
+}
+
+
+func (c *Client) AccessTokenAvailable() bool {
+	return c.accessKey != ""
 }
 
 

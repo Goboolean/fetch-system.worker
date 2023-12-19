@@ -51,6 +51,8 @@ func TestGetApprovalKey(t *testing.T) {
 
 func TestIssueToken(t *testing.T) {
 
+	t.Skip("Skip this test on development mode since issuing token is limited to 1 token per day.")
+
 	var client = new(kis.Client)
 
 	t.Run("IssueToken (case:fail)", func(t *testing.T) {

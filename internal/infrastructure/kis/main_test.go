@@ -21,6 +21,7 @@ func SetupKis() *kis.Client {
 		"APPKEY": os.Getenv("KIS_APPKEY"),
 		"SECRET": os.Getenv("KIS_SECRET"),
 		"BUFFER_SIZE": 10000,
+		"MODE": os.Getenv("MODE"),
 	})
 	if err != nil {
 		panic(err)

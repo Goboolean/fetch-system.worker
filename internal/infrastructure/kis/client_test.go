@@ -25,6 +25,10 @@ func TestConstructor(t *testing.T) {
 	})
 
 	t.Run("IsMarketOn", func(t *testing.T) {
+		if !client.AccessTokenAvailable() {
+			t.Skip("Cannot test IsMarketOn without access token")
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*61)
 		defer cancel()
 
@@ -46,6 +50,10 @@ func TestWebsocket(t *testing.T) {
 
 		ch, err := client.Subscribe(ctx, symbol)
 		assert.NoError(t, err)
+
+		if !client.AccessTokenAvailable() {
+			t.Skip("Cannot test IsMarketOn without access token")
+		}
 
 		on, err := client.IsMarketOn(ctx)
 		assert.NoError(t, err)

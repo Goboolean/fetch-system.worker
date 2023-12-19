@@ -21,7 +21,7 @@ import (
 	"os"
 )
 
-// Injectors from wire.go:
+// Injectors from wire_setup.go:
 
 func InitializeKafkaProducer() (out.DataDispatcher, func(), error) {
 	configMap := ProvideKafkaConfig()
@@ -134,7 +134,7 @@ func InitializeTaskManager(handler pipe.Handler, storageHandler out.StorageHandl
 	return manager, nil
 }
 
-// wire.go:
+// wire_setup.go:
 
 func ProvideOtelConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
@@ -161,8 +161,10 @@ func ProvideMockGeneratorConfig() *resolver.ConfigMap {
 
 func ProvideKISConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
-		"APPKEY": os.Getenv("KIS_APPKEY"),
-		"SECRET": os.Getenv("KIS_SECRET"),
+		"APPKEY":      os.Getenv("KIS_APPKEY"),
+		"SECRET":      os.Getenv("KIS_SECRET"),
+		"MODE":        os.Getenv("MODE"),
+		"BUFFER_SIZE": 100000,
 	}
 }
 
