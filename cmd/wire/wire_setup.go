@@ -51,6 +51,8 @@ func ProvideKISConfig() *resolver.ConfigMap {
 	return &resolver.ConfigMap{
 		"APPKEY": os.Getenv("KIS_APPKEY"),
 		"SECRET": os.Getenv("KIS_SECRET"),
+		"MODE":   os.Getenv("MODE"),
+		"BUFFER_SIZE": 100000,
 	}
 }
 
