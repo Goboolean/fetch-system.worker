@@ -7,6 +7,7 @@
 package wire
 
 import (
+	"context"
 	"fmt"
 	"github.com/Goboolean/common/pkg/resolver"
 	"github.com/Goboolean/fetch-system.worker/internal/adapter"
@@ -18,14 +19,16 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
 // Injectors from wire_setup.go:
 
-func InitializeKafkaProducer() (out.DataDispatcher, func(), error) {
+func InitializeKafkaProducer(ctx context.Context) (out.DataDispatcher, func(), error) {
 	configMap := ProvideKafkaConfig()
-	producer, cleanup, err := ProvideKafkaProducer(configMap)
+	producer, cleanup, err := ProvideKafkaProducer(ctx, configMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -35,9 +38,9 @@ func InitializeKafkaProducer() (out.DataDispatcher, func(), error) {
 	}, nil
 }
 
-func InitializeETCDClient() (out.StorageHandler, func(), error) {
+func InitializeETCDClient(ctx context.Context) (out.StorageHandler, func(), error) {
 	configMap := ProvideETCDConfig()
-	client, cleanup, err := ProvideETCDClient(configMap)
+	client, cleanup, err := ProvideETCDClient(ctx, configMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,9 +50,9 @@ func InitializeETCDClient() (out.StorageHandler, func(), error) {
 	}, nil
 }
 
-func InitializePolygonStockClient() (out.DataFetcher, func(), error) {
+func InitializePolygonStockClient(ctx context.Context) (out.DataFetcher, func(), error) {
 	configMap := ProvidePolygonConfig()
-	stocksClient, cleanup, err := ProvidePolygonStockClient(configMap)
+	stocksClient, cleanup, err := ProvidePolygonStockClient(ctx, configMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -63,9 +66,9 @@ func InitializePolygonStockClient() (out.DataFetcher, func(), error) {
 	}, nil
 }
 
-func InitializePolygonOptionClient() (out.DataFetcher, func(), error) {
+func InitializePolygonOptionClient(ctx context.Context) (out.DataFetcher, func(), error) {
 	configMap := ProvidePolygonConfig()
-	optionClient, cleanup, err := ProvidePolygonOptionClient(configMap)
+	optionClient, cleanup, err := ProvidePolygonOptionClient(ctx, configMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,9 +82,9 @@ func InitializePolygonOptionClient() (out.DataFetcher, func(), error) {
 	}, nil
 }
 
-func InitializePolygonCryptoClient() (out.DataFetcher, func(), error) {
+func InitializePolygonCryptoClient(ctx context.Context) (out.DataFetcher, func(), error) {
 	configMap := ProvidePolygonConfig()
-	cryptoClient, cleanup, err := ProvidePolygonCryptoClient(configMap)
+	cryptoClient, cleanup, err := ProvidePolygonCryptoClient(ctx, configMap)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +98,7 @@ func InitializePolygonCryptoClient() (out.DataFetcher, func(), error) {
 	}, nil
 }
 
-func InitializeMockGenerator() (out.DataFetcher, func(), error) {
+func InitializeMockGenerator(ctx context.Context) (out.DataFetcher, func(), error) {
 	configMap := ProvideMockGeneratorConfig()
 	client, cleanup, err := ProvideMockGenerator(configMap)
 	if err != nil {
@@ -189,51 +192,80 @@ func ProvideWorkerConfig() *vo.Worker {
 	}
 }
 
-func ProvideKafkaProducer(c *resolver.ConfigMap) (*kafka.Producer, func(), error) {
+func ProvideKafkaProducer(ctx context.Context, c *resolver.ConfigMap) (*kafka.Producer, func(), error) {
 	producer, err := kafka.NewProducer(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "Failed to create kafka producer")
 	}
+	if err := producer.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to sennd ping to kafka producer")
+	}
+	logrus.Info("Kafka producer is ready")
+
 	return producer, func() {
 		producer.Close()
+		logrus.Info("Kafka producer is successfully closed")
 	}, nil
 }
 
-func ProvideETCDClient(c *resolver.ConfigMap) (*etcd.Client, func(), error) {
+func ProvideETCDClient(ctx context.Context, c *resolver.ConfigMap) (*etcd.Client, func(), error) {
 	client, err := etcd.New(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "Failed to create etcd client")
 	}
+	if err := client.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to send ping to etcd client")
+	}
+	logrus.Info("ETCD client is ready")
+
 	return client, func() {
 		client.Close()
+		logrus.Info("ETCD client is successfully closed")
 	}, nil
 }
 
-func ProvidePolygonStockClient(c *resolver.ConfigMap) (*polygon.StocksClient, func(), error) {
+func ProvidePolygonStockClient(ctx context.Context, c *resolver.ConfigMap) (*polygon.StocksClient, func(), error) {
 	client, err := polygon.NewStocksClient(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "Failed to create polygon client")
 	}
+	if err := client.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to send ping to polygon client")
+	}
+	logrus.Info("Polygon client is ready")
+
 	return client, func() {
 		client.Close()
+		logrus.Info("Polygon client is successfully closed")
 	}, nil
 }
 
-func ProvidePolygonOptionClient(c *resolver.ConfigMap) (*polygon.OptionClient, func(), error) {
+func ProvidePolygonOptionClient(ctx context.Context, c *resolver.ConfigMap) (*polygon.OptionClient, func(), error) {
 	client, err := polygon.NewOptionClient(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "Failed to create polygon client")
 	}
+	if err := client.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to send ping to polygon client")
+	}
+	logrus.Info("Polygon client is ready")
+
 	return client, func() {
 		client.Close()
+		logrus.Info("Polygon client is successfully closed")
 	}, nil
 }
 
-func ProvidePolygonCryptoClient(c *resolver.ConfigMap) (*polygon.CryptoClient, func(), error) {
+func ProvidePolygonCryptoClient(ctx context.Context, c *resolver.ConfigMap) (*polygon.CryptoClient, func(), error) {
 	client, err := polygon.NewCryptoClient(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "Failed to create polygon client")
 	}
+	if err := client.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to send ping to polygon client")
+	}
+	logrus.Info("Polygon client is ready")
+
 	return client, func() {
 		client.Close()
 	}, nil
@@ -242,30 +274,33 @@ func ProvidePolygonCryptoClient(c *resolver.ConfigMap) (*polygon.CryptoClient, f
 func ProvideMockGenerator(c *resolver.ConfigMap) (*mock.Client, func(), error) {
 	client, err := mock.New(c)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "Failed to create mock client")
 	}
+	logrus.Info("Mock client is ready")
+
 	return client, func() {
 		client.Close()
+		logrus.Info("Mock client is successfully closed")
 	}, nil
 }
 
-func InitializeFetcher() (out.DataFetcher, func(), error) {
+func InitializeFetcher(ctx context.Context) (out.DataFetcher, func(), error) {
 	switch os.Getenv("PLATFORM") {
 	case "POLYGON":
 		switch os.Getenv("MARKET") {
 		case "STOCK":
-			return InitializePolygonStockClient()
+			return InitializePolygonStockClient(ctx)
 		case "OPTION":
-			return InitializePolygonOptionClient()
+			return InitializePolygonOptionClient(ctx)
 		case "CRYPTO":
-			return InitializePolygonCryptoClient()
+			return InitializePolygonCryptoClient(ctx)
 		default:
 			return nil, nil, fmt.Errorf("invalid market: %s", os.Getenv("MARKET"))
 		}
 	case "KIS":
 		return nil, nil, fmt.Errorf("not implemented")
 	case "MOCK":
-		return InitializeMockGenerator()
+		return InitializeMockGenerator(ctx)
 	default:
 		return nil, nil, fmt.Errorf("invalid platform")
 	}

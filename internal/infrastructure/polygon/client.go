@@ -2,12 +2,14 @@ package polygon
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/Goboolean/common/pkg/resolver"
+	polygonrest "github.com/polygon-io/client-go/rest"
 	"github.com/polygon-io/client-go/websocket"
 	"github.com/polygon-io/client-go/websocket/models"
-	polygonrest "github.com/polygon-io/client-go/rest"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -115,16 +117,22 @@ func (c *client[T]) Subscribe() (<-chan T, error) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-c.conn.Error():
+			case err := <-c.conn.Error():
+				log.WithField("error", err).
+				Panic("Failed to receive data from polygon")
 				return
 			case out, more := <-c.conn.Output():
 				if !more {
+					log.WithField("error", fmt.Errorf("there is no more output from websocket")).
+					Panic("Failed to receive data from polygon")
 					return
 				}
 
 				data, ok := out.(T)
 				if !ok {
-					return
+					log.WithField("data", out).
+					Error("Failed to cast data. There is inconsistency between the infrastructure type and data type")
+					continue
 				}
 
 				c.ch <- data

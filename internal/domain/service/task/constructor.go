@@ -10,6 +10,7 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/service/pipe"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -78,17 +79,17 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create mutex")
 	}
 
 	if err := mu.Lock(ctx); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to aquire lock")
 	}
 	defer mu.Unlock(ctx)
 
 	workers, err := m.s.GetAllWorker(ctx)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to query all workers from storage")
 	}
 
 	var isSecondary bool
@@ -102,17 +103,17 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 
 	connCh, err := m.s.CreateConnection(ctx, m.worker.ID)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create connection")
 	}
 	m.connCh = connCh
 
 	if err := m.s.RegisterWorker(ctx, *m.worker); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to register worker")
 	}
 
 	products, err := m.s.GetProducts(ctx, m.worker.Platform, m.worker.Market)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to get products")
 	}
 
 	var pipeErr error
@@ -126,7 +127,7 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		if err := m.s.UpdateWorkerStatus(context.Background(), m.worker.ID, vo.WorkerStatusExitedRegisterFailed); err != nil {
 			return errors.Wrap(err, pipeErr.Error())
 		}
-		return pipeErr
+		return errors.Wrap(pipeErr, "Failed to run pipe")
 	}
 
 	if isSecondary {
@@ -135,12 +136,12 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 
 		m.promCh, err = m.s.WatchPromotion(ctx, m.primaryID)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to create watcher primary worker promotion")
 		}
 
 		m.ttlCh, err = m.s.WatchConnectionEnds(ctx, m.primaryID)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to create watcher primary worker connection ends")
 		}		
 	}
 
@@ -151,7 +152,7 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 	mu, err := m.s.Mutex(ctx, out.MutexKeyWorker)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "Failed to create mutex")
 	}
 	if err := mu.TryLock(ctx); err != nil {
 		return false, nil
@@ -165,7 +166,7 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 			status, err := m.s.GetWorkerStatus(ctx, m.primaryID)
 			if err != nil {
-				return false, err
+				return false, errors.Wrap(err, "Failed to get primary worker status")
 			}
 			if status == vo.WorkerStatusExitedTTlFailed {
 				return false, nil
@@ -173,13 +174,13 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 			timestamp = time.Now().Add(- time.Second * 5)
 			if err := m.s.UpdateWorkerStatusExited(ctx, m.primaryID, vo.WorkerStatusExitedTTlFailed, timestamp); err != nil {
-				return false, err
+				return false, errors.Wrap(err, "Failed to update primary worker status")
 			}
 
 		case Shutdown:
 			workers, err := m.s.GetAllWorker(ctx)
 			if err != nil {
-				return false, err
+				return false, errors.Wrap(err, "Failed to get all workers")
 			}
 
 			hasPrimary, primaryID := m.hasPrimary(workers)
@@ -190,7 +191,7 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 			timestamp, err = m.s.GetWorkerTimestamp(ctx, m.primaryID)
 			if err != nil {
-				return false, err
+				return false, errors.Wrap(err, "Failed to get primary worker timestamp")
 			}
 	}
 
@@ -198,7 +199,7 @@ func (m *Manager) tryPromotion(ctx context.Context, _type PromotionType) (bool, 
 
 	m.worker.Status = vo.WorkerStatusPrimary
 	if err := m.s.UpdateWorkerStatus(ctx, m.worker.ID, vo.WorkerStatusPrimary); err != nil {
-		return false, err
+		return false, errors.Wrap(err, "Failed to update worker status to primary")
 	}
 
 	close(m.connCh)
@@ -214,6 +215,7 @@ func (m *Manager) Cease() error {
 
 
 func (m *Manager) Shutdown() error {
+	log.Info("Shutdown is triggered")
 
 	var timestamp = time.Now().Truncate(time.Second).Add(time.Second)
 
@@ -222,10 +224,11 @@ func (m *Manager) Shutdown() error {
 	}
 
 	if err := m.s.UpdateWorkerStatusExited(m.ctx, m.worker.ID, vo.WorkerStatusExitedShutdownOccured, timestamp); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to update worker status")
 	}
 
 	m.cancel()
+	log.Info("Shutdown is successfully completed")
 	return nil
 }
 
@@ -249,21 +252,25 @@ func (m *Manager) trackChan() {
 				return
 			case _, ok := <- m.promCh:
 				if ok {
+					log.Info("Primary worker shutdown detected, trying to promote to primary worker")
 					success, err := m.tryPromotion(m.ctx, Shutdown)
 					if err != nil {
-						panic(err)
+						panic(errors.Wrap(err, "Failed to promote triggered by primary worker shutdown"))
 					}
 					if success {
+						log.Info("Successfully promoted to primary worker triggered by primary worker shutdown")
 						return
 					}
 				}
 			case _, ok := <-m.ttlCh:
 				if ok {
+					log.Info("Primary worker ttl fail detected, trying to promote to primary worker")
 					success, err := m.tryPromotion(m.ctx, TTLFailed)
 					if err != nil {
-						panic(err)
+						panic(errors.Wrap(err, "Failed to promote triggered by primary worker ttl fail"))
 					}
 					if success {
+						log.Info("Successfully promoted to primary worker triggered by primary worker ttl fail")
 						return
 					}
 				}
