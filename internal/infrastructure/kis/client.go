@@ -15,6 +15,7 @@ import (
 
 	"github.com/Goboolean/common/pkg/resolver"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -175,6 +176,7 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		if isPingpongMsg(message) {
+			log.Info("Pingpong message is received: connection is alive")
 			c.tryVacatingMsgCh()
 			c.msgCh <- struct{}{}
 			continue
@@ -187,13 +189,17 @@ func (c *Client) runReader(ctx context.Context, wg *sync.WaitGroup) {
 
 		data, err := parseTrade(string(message))
 		if err != nil {
+			log.WithFields(log.Fields{
+				"message": string(message),
+				"error":   err,
+			}).Error("Failed to parse received message")
 			c.errCh <- err
 			continue
 		}
 
 		for _, d := range data {
 			c.dataCh <- d
-		}	
+		}
 	}
 }
 
@@ -319,6 +325,7 @@ func (c *Client) IssueAccessToken(ctx context.Context, appkey string, appsecret 
 
 
 func (c *Client) Subscribe(ctx context.Context, stocks ...string) (<-chan *Trade, error) {
+	log.WithField("stock list", stocks).Info("Subscribing stocks...")
 
 	hangingStockList := make(map[string]struct{})
 	for _, stock := range stocks {
@@ -338,6 +345,7 @@ func (c *Client) Subscribe(ctx context.Context, stocks ...string) (<-chan *Trade
 		case stock := <- c.subCh:
 			delete(hangingStockList, stock)
 			if len(hangingStockList) == 0 {
+				log.Info("All stocks are subscribed")
 				return c.dataCh, nil
 			}
 		}
