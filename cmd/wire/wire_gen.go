@@ -32,7 +32,8 @@ func InitializeKafkaProducer(ctx context.Context) (out.DataDispatcher, func(), e
 	if err != nil {
 		return nil, nil, err
 	}
-	dataDispatcher := adapter.NewKafkaAdapter(producer)
+	worker := ProvideWorkerConfig()
+	dataDispatcher := adapter.NewKafkaAdapter(producer, worker)
 	return dataDispatcher, func() {
 		cleanup()
 	}, nil
@@ -198,7 +199,7 @@ func ProvideKafkaProducer(ctx context.Context, c *resolver.ConfigMap) (*kafka.Pr
 		return nil, nil, errors.Wrap(err, "Failed to create kafka producer")
 	}
 	if err := producer.Ping(ctx); err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to sennd ping to kafka producer")
+		return nil, nil, errors.Wrap(err, "Failed to send ping to kafka producer")
 	}
 	logrus.Info("Kafka producer is ready")
 
