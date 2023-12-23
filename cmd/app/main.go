@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Goboolean/fetch-system.worker/cmd/wire"
 
@@ -18,22 +19,21 @@ import (
 
 func main() {
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	kafka, cleanup, err := wire.InitializeKafkaProducer()
+	kafka, cleanup, err := wire.InitializeKafkaProducer(ctx)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	etcd, cleanup, err := wire.InitializeETCDClient()
+	etcd, cleanup, err := wire.InitializeETCDClient(ctx)
 	if err != nil {
 		panic(err)
 	}
 	defer cleanup()
 
-	fetcher, cleanup, err := wire.InitializeFetcher()
+	fetcher, cleanup, err := wire.InitializeFetcher(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -49,6 +49,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
 	if err := taskManager.RegisterWorker(ctx); err != nil {
 		panic(err)

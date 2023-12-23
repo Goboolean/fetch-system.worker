@@ -38,7 +38,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Run etcd", func(tt *testing.T) {
 		var cleanup func()
 
-		etcd, cleanup, err = wire.InitializeETCDClient()
+		etcd, cleanup, err = wire.InitializeETCDClient(ctx)
 		assert.NoError(tt, err)
 
 		t.Cleanup(cleanup)
@@ -47,7 +47,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Run kafka", func(tt *testing.T) {
 		var cleanup func()
 
-		kafka, cleanup, err = wire.InitializeKafkaProducer()
+		kafka, cleanup, err = wire.InitializeKafkaProducer(ctx)
 		assert.NoError(tt, err)
 
 		t.Cleanup(cleanup)
@@ -56,7 +56,7 @@ func TestMainScenario(t *testing.T) {
 	t.Run("Run fetcher", func(tt *testing.T) {
 		var cleanup func()
 
-		fetcher, cleanup, err = wire.InitializeFetcher()
+		fetcher, cleanup, err = wire.InitializeFetcher(ctx)
 		assert.NoError(tt, err)
 
 		t.Cleanup(cleanup)
