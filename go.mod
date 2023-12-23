@@ -4,7 +4,7 @@ go 1.21.0
 
 require (
 	github.com/Goboolean/common v0.0.0-20231130153141-cb54596b217d
-	github.com/Goboolean/fetch-system.IaC v0.0.0-20231211162046-745e59a36898
+	github.com/Goboolean/fetch-system.IaC v0.0.0-20231223133223-a3ed959a7b16
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/google/uuid v1.5.0
 	github.com/google/wire v0.5.0

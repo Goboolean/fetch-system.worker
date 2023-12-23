@@ -180,6 +180,7 @@ func InitializeKafkaProducer(ctx context.Context) (out.DataDispatcher, func(), e
 	wire.Build(
 		ProvideKafkaConfig,
 		ProvideKafkaProducer,
+		ProvideWorkerConfig,
 		adapter.NewKafkaAdapter,
 	)
 	return nil, nil, nil
