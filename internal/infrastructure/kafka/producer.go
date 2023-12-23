@@ -93,7 +93,7 @@ func (p *Producer) Flush(ctx context.Context) (int, error) {
 
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		return 0, ErrDeadlineSettingRequired
+		deadline = time.Now().Add(time.Hour)
 	}
 
 	left := p.producer.Flush(int(time.Until(deadline).Milliseconds()))
@@ -149,7 +149,7 @@ func (p *Producer) Ping(ctx context.Context) error {
 	// It will return error if there is no response within deadline
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		return ErrDeadlineSettingRequired
+		deadline = time.Now().Add(time.Hour)
 	}
 
 	remaining := time.Until(deadline)
