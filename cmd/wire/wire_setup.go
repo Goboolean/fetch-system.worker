@@ -16,6 +16,7 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
+	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kis"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
 	"github.com/google/wire"
@@ -138,7 +139,7 @@ func ProvidePolygonOptionClient(ctx context.Context, c *resolver.ConfigMap) (*po
 	if err := client.Ping(ctx); err != nil {
 		return nil, nil, errors.Wrap(err, "Failed to send ping to polygon client")
 	}
-	log.Info("Polygon client is ready")
+	log.Info("Polygon option client is ready")
 
 	return client, func() {
 		client.Close()
@@ -158,6 +159,22 @@ func ProvidePolygonCryptoClient(ctx context.Context, c *resolver.ConfigMap) (*po
 
 	return client, func() {
 		client.Close()
+	}, nil
+}
+
+func ProvideKISStockClient(ctx context.Context, c *resolver.ConfigMap) (*kis.Client, func(), error) {
+	client, err := kis.New(c)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to create kis client")
+	}
+	if err := client.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to send ping to kis client")
+	}
+	log.Info("KIS client is ready")
+
+	return client, func() {
+		client.Close()
+		log.Info("KIS client is successfully closed")
 	}, nil
 }
 
@@ -222,6 +239,15 @@ func InitializePolygonCryptoClient(ctx context.Context) (out.DataFetcher, func()
 	return nil, nil, nil
 }
 
+func InitializeKISStockClient(ctx context.Context) (out.DataFetcher, func(), error) {
+	wire.Build(
+		ProvideKISConfig,
+		kis.New,
+		adapter.NewStockKISAdapter,
+	)
+	return nil, nil, nil
+}
+
 func InitializeMockGenerator(ctx context.Context) (out.DataFetcher, func(), error) {
 	wire.Build(
 		ProvideMockGeneratorConfig,
@@ -229,9 +255,7 @@ func InitializeMockGenerator(ctx context.Context) (out.DataFetcher, func(), erro
 		adapter.NewMockGeneratorAdapter,
 	)
 	return nil, nil, nil
-
 }
-
 
 
 
@@ -249,7 +273,12 @@ func InitializeFetcher(ctx context.Context) (out.DataFetcher, func(), error) {
 				return nil, nil, fmt.Errorf("invalid market: %s", os.Getenv("MARKET"))
 			}
 	case "KIS":
-		return nil, nil, fmt.Errorf("not implemented")
+		switch os.Getenv("MARKET") {
+			case "STOCK":
+				return InitializeKISStockClient(ctx)
+			default:
+				return nil, nil, fmt.Errorf("invalid market: %s", os.Getenv("MARKET"))
+			}
 	case "MOCK":
 		return InitializeMockGenerator(ctx)
 	default:
