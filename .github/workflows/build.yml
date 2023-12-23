@@ -1,9 +1,9 @@
-name: Deploy image to production
+name: Test & Build Image
 
 on:
   push:
     branches:
-      - feature/deploy
+      - main
 
 jobs:
   test:
@@ -16,6 +16,17 @@ jobs:
         run: |
           echo "${{ secrets.ENV }}" > deploy/.env
 
-      - name: Build & push image
+      - name: Run tests
+        run: |
+          make test-app
+
+  build:
+    needs: [test]
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build & push retriever image
         run: |
           make build-app
