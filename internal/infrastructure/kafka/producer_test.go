@@ -10,7 +10,7 @@ import (
 	"github.com/Goboolean/fetch-system.IaC/pkg/model"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
 	"github.com/stretchr/testify/assert"
-
+	_ "github.com/Goboolean/fetch-system.worker/internal/util/otel/debug"
 	_ "github.com/Goboolean/common/pkg/env"
 )
 
@@ -50,14 +50,24 @@ func Test_Produce(t *testing.T) {
 
 	const productId = "test.produce.io"
 	const productType = "1s"
+	const platform = "mock"
+	const market = "stock"
 
-	var trade = &model.Trade{
+	var now = time.Now().Unix()
+
+	var tradeProtobuf = model.TradeProtobuf{
 		Price:     171.55,
 		Size:      100,
-		Timestamp: time.Now().Unix(),
+		Timestamp: now,
 	}
 
-	var aggs = &model.Aggregate{
+	var tradeJson = model.TradeJson{
+		Price:     171.55,
+		Size:      100,
+		Timestamp: now,
+	}
+
+	var aggsProtobuf = model.AggregateProtobuf{
 		Open:      170.55,
 		Closed:    173.55,
 		Min:       170.55,
@@ -66,22 +76,57 @@ func Test_Produce(t *testing.T) {
 		Timestamp: time.Now().Unix(),
 	}
 
-	t.Run("ProduceTrade", func(t *testing.T) {
-		err := p.ProduceTrade(productId, trade)
-		assert.NoError(t, err)
-	})
+	var aggsJson = model.AggregateJson{
+		Open:      170.55,
+		Close:     173.55,
+		High:      170.55,
+		Low:       171.55,
+		Volume:    100,
+		Timestamp: time.Now().Unix(),
+	}
 
-	t.Run("ProduceAggs", func(t *testing.T) {
-		err := p.ProduceAggs(productId, productType, aggs)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Flush", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 5)
+	t.Run("ProduceProtobufTrade", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
 		defer cancel()
 
-		count, err := p.Flush(ctx)
+		err := p.ProduceProtobufTrade(productId, platform, market, &tradeProtobuf)
 		assert.NoError(t, err)
-		assert.Equal(t, 0, count)
+
+		_, err = p.Flush(ctx)
+		assert.NoError(t, err)
 	})
+
+	t.Run("ProduceProtobufAggs", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+		defer cancel()
+
+		err := p.ProduceProtobufAggs(productId, productType, platform, market, &aggsProtobuf)
+		assert.NoError(t, err)
+
+		_, err = p.Flush(ctx)
+		assert.NoError(t, err)
+	})
+
+	t.Run("ProduceJsonTrade", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+		defer cancel()
+
+		err := p.ProduceJsonTrade(productId, &tradeJson)
+		assert.NoError(t, err)
+
+		_, err = p.Flush(ctx)
+		assert.NoError(t, err)
+	})
+
+	t.Run("ProduceJsonAggs", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+		defer cancel()
+
+		err := p.ProduceJsonAggs(productId, productType, &aggsJson)
+		assert.NoError(t, err)
+
+		_, err = p.Flush(ctx)
+		assert.NoError(t, err)
+	})
+
 }
