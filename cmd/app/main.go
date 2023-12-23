@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Goboolean/fetch-system.worker/cmd/wire"
+	log "github.com/sirupsen/logrus"
 
 	_ "github.com/Goboolean/common/pkg/env"
 )
@@ -18,6 +19,7 @@ import (
 
 
 func main() {
+	log.Info("Application Running...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -57,11 +59,20 @@ func main() {
 		panic(err)
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("Panic recovered: ", r)
+			cancel()
+		}
+	}()
+
 	select {
 	case <-ctx.Done():
+		log.Info("Application Shutdown...")
 		taskManager.Shutdown()
 		return
 	case <-taskManager.OnConnectionFailed():
+		log.Error("Connection failed...")
 		taskManager.Cease()
 		return
 	}	
