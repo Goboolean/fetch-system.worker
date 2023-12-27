@@ -52,6 +52,10 @@ func main() {
 		panic(err)
 	}
 
+	if err := taskManager.RegisterWorker(ctx); err != nil {
+		panic(err)
+	}
+
 	ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
