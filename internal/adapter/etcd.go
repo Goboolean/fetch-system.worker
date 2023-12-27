@@ -8,6 +8,7 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
+	log "github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client/v3"
 )
 
@@ -186,9 +187,16 @@ func (a ETCDAdapter) CreateConnection(ctx context.Context, workerId string) (cha
 	a.leaseID = leaseID
 
 	go func() {
-		for range respCh {
-			ch <- struct{}{}
+		for resp := range respCh {
+			log.WithFields(log.Fields{
+				"ClusterId": resp.ClusterId,
+				"MemberId": resp.MemberId,
+				"Revision": resp.Revision,
+				"RaftTerm": resp.RaftTerm,
+			}).Debug("KeepAlive response")
 		}
+		log.Warn("KeepAlive channel closed")
+		ch <- struct{}{}
 	}()
 	return ch, nil
 }
