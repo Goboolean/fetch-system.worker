@@ -101,15 +101,27 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		m.worker.Status = vo.WorkerStatusPrimary
 	}
 
+	log.WithFields(log.Fields{
+		"existingWorkers": len(workers),
+		"status": m.worker.Status,
+	}).Info("Worker info aquired")
+
 	connCh, err := m.s.CreateConnection(ctx, m.worker.ID)
 	if err != nil {
 		return errors.Wrap(err, "Failed to create connection")
 	}
 	m.connCh = connCh
+	log.Info("Connection is successfully established")
 
 	if err := m.s.RegisterWorker(ctx, *m.worker); err != nil {
 		return errors.Wrap(err, "Failed to register worker")
 	}
+	log.WithFields(log.Fields{
+		"workerId": m.worker.ID,
+		"platform": m.worker.Platform,
+		"market": m.worker.Market,
+		"status": m.worker.Status,
+	}).Info("Worker is successfully registered")
 
 	products, err := m.s.GetProducts(ctx, m.worker.Platform, m.worker.Market)
 	if err != nil {
@@ -119,8 +131,10 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 	var pipeErr error
 	if !isSecondary {
 		pipeErr = m.p.RunStreamingPipe(ctx, products)
+		log.WithField("products", len(products)).Info("Streaming pipe is started")
 	} else {
 		pipeErr = m.p.RunStoringPipe(ctx, products)
+		log.WithField("products", len(products)).Info("Storing pipe is started")
 	}
 
 	if pipeErr != nil {
@@ -138,11 +152,13 @@ func (m *Manager) RegisterWorker(ctx context.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "Failed to create watcher primary worker promotion")
 		}
+		log.Info("Watching primary worker promotion is successfully established")
 
 		m.ttlCh, err = m.s.WatchConnectionEnds(ctx, m.primaryID)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create watcher primary worker connection ends")
-		}		
+		}
+		log.Info("Watching primary worker connection ends is successfully established")
 	}
 
 	return nil
