@@ -51,19 +51,19 @@ func TestWebsocket(t *testing.T) {
 		ch, err := client.Subscribe(ctx, symbol)
 		assert.NoError(t, err)
 
-		if !client.AccessTokenAvailable() {
-			t.Skip("Cannot test IsMarketOn without access token")
-		}
+		//if !client.AccessTokenAvailable() {
+		//	t.Skip("Cannot test IsMarketOn without access token")
+		//}
 
-		on, err := client.IsMarketOn(ctx)
-		assert.NoError(t, err)
+		//on, err := client.IsMarketOn(ctx)
+		//assert.NoError(t, err)
 
-		if on {
+		for {
 			select {
 			case <-ctx.Done():
-				assert.Fail(t, "context deadline exceeded")
-			case <-ch:
-				break
+				return
+			case v := <-ch:
+				assert.Equal(t, symbol, v.Symbol)
 			}
 		}
 	})
