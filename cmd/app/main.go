@@ -23,7 +23,7 @@ import (
 func main() {
 	log.Info("Application Running...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 
 	kafka, cleanup, err := wire.InitializeKafkaProducer(ctx)
 	if err != nil {
