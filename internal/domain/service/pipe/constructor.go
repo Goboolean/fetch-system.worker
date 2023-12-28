@@ -144,6 +144,8 @@ func (m *Manager) connectOutputPipe(ctx context.Context) error {
 
 
 func (m *Manager) RunStreamingPipe(ctx context.Context, products []*vo.Product) error {
+	m.status = StreamingPipe
+
 	if err := m.connectInputPipe(ctx, products); err != nil {
 		return err
 	}
@@ -157,6 +159,8 @@ func (m *Manager) RunStreamingPipe(ctx context.Context, products []*vo.Product) 
 }
 
 func (m *Manager) RunStoringPipe(ctx context.Context, products []*vo.Product) error {
+	m.status = StoringPipe
+
 	if err := m.connectInputPipe(ctx, products); err != nil {
 		return err
 	}
