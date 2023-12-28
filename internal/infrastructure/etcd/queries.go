@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"fmt"
 
 	etcdutil "github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd/util"
 	"go.etcd.io/etcd/client/v3"
@@ -29,7 +30,7 @@ func (c *Client) InsertWorker(ctx context.Context, w *Worker) error {
 		return err
 	}
 	if flag := resp.Succeeded; !flag {
-		return ErrObjectExists
+		return fmt.Errorf(resp.Header.String())
 	}
 	return err
 }
@@ -159,7 +160,7 @@ func (c *Client) InsertOneProduct(ctx context.Context, p *Product) error {
 		return err
 	}
 	if flag := resp.Succeeded; !flag {
-		return ErrObjectExists
+		return fmt.Errorf(resp.Header.String())
 	}
 	return nil
 }
@@ -189,7 +190,7 @@ func (c *Client) InsertProducts(ctx context.Context, p []*Product) error {
 		return err
 	}
 	if flag := resp.Succeeded; !flag {
-		return ErrObjectExists
+		return fmt.Errorf(resp.Header.String())
 	}
 	return nil
 }
@@ -216,7 +217,7 @@ func (c *Client) UpsertProducts(ctx context.Context, p []*Product) error {
 		return err
 	}
 	if flag := resp.Succeeded; !flag {
-		return ErrObjectExists
+		return fmt.Errorf(resp.Header.String())
 	}
 	return nil
 }
