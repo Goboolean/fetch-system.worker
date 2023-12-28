@@ -24,13 +24,25 @@ func (a *StockKISAdapter) InputStream(ctx context.Context, symbol ...string) (<-
 	
 	ch := make(chan *vo.Trade)
 
-	polyonCh, err := a.c.Subscribe(ctx, symbol...)
+	for i := 0; i < len(symbol); i += 10 {
+		end := i + 10
+		if end > len(symbol) {
+			end = len(symbol)
+		}
+
+		_, err := a.c.Subscribe(ctx, symbol[i:end]...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	kisCh, err := a.c.Subscribe(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	go func() {
-		for v := range polyonCh {
+		for v := range kisCh {
 			ch <- &vo.Trade{
 				Symbol: v.Symbol,
 				TradeDetail: vo.TradeDetail{

@@ -325,6 +325,10 @@ func (c *Client) IssueAccessToken(ctx context.Context, appkey string, appsecret 
 
 
 func (c *Client) Subscribe(ctx context.Context, stocks ...string) (<-chan *Trade, error) {
+	if len(stocks) == 0 {
+		return c.dataCh, nil
+	}
+
 	log.WithField("stock list", stocks).Info("Subscribing stocks...")
 
 	hangingStockList := make(map[string]struct{})
