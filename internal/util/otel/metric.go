@@ -15,6 +15,8 @@ var (
 	PolygonStockReceivedCount metric.Int64Counter
 	KISStockErrorCount        metric.Int64Counter
 	KISStockReceivedCount     metric.Int64Counter
+	ProductSubscribedCount    metric.Int64Counter
+	ProductReceivedCount      metric.Int64Counter
 )
 
 
@@ -56,6 +58,16 @@ func initMetric(meter metric.Meter) (err error) {
 	}
 	
 	KISStockReceivedCount, err = meter.Int64Counter("kis.stock.received.count")
+	if err != nil {
+		return
+	}
+
+	ProductSubscribedCount, err = meter.Int64Counter("product.subscribed.count")
+	if err != nil {
+		return
+	}
+
+	ProductReceivedCount, err = meter.Int64Counter("product.received.count")
 	if err != nil {
 		return
 	}

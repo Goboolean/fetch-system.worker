@@ -7,6 +7,7 @@ import (
 
 	"github.com/Goboolean/fetch-system.worker/internal/domain/port/out"
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
+	"github.com/Goboolean/fetch-system.worker/internal/util/otel"
 )
 
 
@@ -84,10 +85,20 @@ func (m *Manager) connectInputPipe(ctx context.Context, products []*vo.Product) 
 		symbolToID[product.Symbol] = product.ID
 	}
 
+	received := make(map[string]bool)
+	for _, product := range products {
+		received[product.Symbol] = false
+	}
+
 	go func ()  {
 		for v := range m.input {
 			v.ID = symbolToID[v.Symbol]
 			*m.arbiter <- v
+
+			if m.status == StreamingPipe && !received[v.Symbol] {
+				received[v.Symbol] = true
+				otel.ProductReceivedCount.Add(ctx, 1)
+			}
 		}
 	}()
 	return
@@ -140,6 +151,8 @@ func (m *Manager) RunStreamingPipe(ctx context.Context, products []*vo.Product) 
 		return err
 	}
 	m.arbiter = &m.output
+
+	otel.ProductSubscribedCount.Add(ctx, int64(len(products)))
 	return nil
 }
 
