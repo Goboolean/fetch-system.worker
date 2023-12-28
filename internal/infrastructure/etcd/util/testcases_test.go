@@ -1,6 +1,8 @@
 package etcdutil_test
 
 import (
+	"time"
+
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 	etcdutil "github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd/util"
 )
@@ -17,6 +19,8 @@ type Nested struct {
 func (n *Nested) Name() string {
 	return "nested"
 }
+
+var timestamp = time.Now().String()
 
 type group struct {
 	str   map[string]string
@@ -40,10 +44,12 @@ var cases []struct {
 			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/platform": "kis",
 			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/status":   "waiting",
 			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/lease_id":  "0",
+			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/timestamp":  timestamp,
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886":          "",
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/platform": "kis",
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/status":   "active",
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/lease_id":  "0",
+			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/timestamp":  timestamp,
 		},
 		group: []group{
 			{
@@ -52,6 +58,7 @@ var cases []struct {
 					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/platform": "kis",
 					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/status":   "waiting",
 					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/lease_id":  "0",
+					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/timestamp":  timestamp,
 				},
 				model: &etcd.Worker{},
 				data: &etcd.Worker{
@@ -59,6 +66,7 @@ var cases []struct {
 					Platform: "kis",
 					Status:   "waiting",
 					LeaseID:  "0",
+					Timestamp: timestamp,
 				},
 			},
 			{
@@ -67,6 +75,7 @@ var cases []struct {
 					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/platform": "kis",
 					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/status":   "active",
 					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/lease_id":  "0",
+					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/timestamp":  timestamp,
 				},
 				model: &etcd.Worker{},
 				data: &etcd.Worker{
@@ -74,6 +83,7 @@ var cases []struct {
 					Platform: "kis",
 					Status:   "active",
 					LeaseID:  "0",
+					Timestamp: timestamp,
 				},
 			},
 		},
