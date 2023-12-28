@@ -66,6 +66,9 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("Panic recovered: ", r)
+			if err := taskManager.Shutdown(); err != nil {
+				log.WithField("error", err).Error("Failed to shutdown task manager")
+			}
 			cancel()
 		}
 	}()
@@ -73,11 +76,15 @@ func main() {
 	select {
 	case <-ctx.Done():
 		log.Info("Application Shutdown...")
-		taskManager.Shutdown()
+		if err := taskManager.Shutdown(); err != nil {
+			log.WithField("error", err).Error("Failed to shutdown task manager")
+		}
 		return
 	case <-taskManager.OnConnectionFailed():
 		log.Error("Connection failed...")
-		taskManager.Cease()
+		if err := taskManager.Cease(); err != nil {
+			log.WithField("error", err).Error("Failed to cease task manager")
+		}
 		return
 	}	
 }
