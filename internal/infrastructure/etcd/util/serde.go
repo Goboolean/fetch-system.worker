@@ -143,10 +143,13 @@ func Deserialize(input map[string]string, output Model) error {
 				name = field.Name
 			}
 		}
+		if name == "" {
+			continue
+		}
 
 		f := reflect.ValueOf(output).Elem().FieldByName(name)
 		if f.IsValid() == false || f.CanSet() == false {
-			return ErrFieldNotSettable
+			return fmt.Errorf("msg: field is not valid or cannot set name: %s key: %s value: %s", name, k, v)
 		}
 
 		f.SetString(v)

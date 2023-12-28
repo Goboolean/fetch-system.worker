@@ -36,7 +36,7 @@ func (c *Client) InsertWorker(ctx context.Context, w *Worker) error {
 
 func (c *Client) GetWorker(ctx context.Context, id string) (*Worker, error) {
 
-	resp, err := c.client.Get(context.Background(), etcdutil.Identifier("worker", id), clientv3.WithPrefix())
+	resp, err := c.client.Get(ctx, etcdutil.Identifier("worker", id), clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -77,12 +77,12 @@ func (c *Client) GetWorkerStatus(ctx context.Context, id string) (string, error)
 }
 
 func (c *Client) DeleteWorker(ctx context.Context, id string) error {
-	_, err := c.client.Delete(context.Background(), etcdutil.Identifier("worker", id), clientv3.WithPrefix())
+	_, err := c.client.Delete(ctx, etcdutil.Identifier("worker", id), clientv3.WithPrefix())
 	return err
 }
 
 func (c *Client) DeleteAllWorkers(ctx context.Context) error {
-	_, err := c.client.Delete(context.Background(), etcdutil.Group("worker"), clientv3.WithPrefix())
+	_, err := c.client.Delete(ctx, etcdutil.Group("worker"), clientv3.WithPrefix())
 	return err
 }
 
@@ -96,7 +96,7 @@ func (c *Client) WorkerExists(ctx context.Context, id string) (bool, error) {
 
 func (c *Client) GetAllWorkers(ctx context.Context) ([]*Worker, error) {
 
-	resp, err := c.client.Get(context.Background(), etcdutil.Group("worker"), clientv3.WithPrefix())
+	resp, err := c.client.Get(ctx, etcdutil.Group("worker"), clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (c *Client) GetAllWorkers(ctx context.Context) ([]*Worker, error) {
 }
 
 func (c *Client) UpdateWorkerStatus(ctx context.Context, id string, status string) error {
-	_, err := c.client.Put(context.Background(), etcdutil.Field("worker", id, "status"), status)
+	_, err := c.client.Put(ctx, etcdutil.Field("worker", id, "status"), status)
 	return err
 }
 
@@ -225,7 +225,7 @@ func (c *Client) UpsertProducts(ctx context.Context, p []*Product) error {
 
 func (c *Client) GetProduct(ctx context.Context, id string) (*Product, error) {
 
-	resp, err := c.client.Get(context.Background(), etcdutil.Identifier("product", id), clientv3.WithPrefix())
+	resp, err := c.client.Get(ctx, etcdutil.Identifier("product", id), clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (c *Client) GetProduct(ctx context.Context, id string) (*Product, error) {
 
 func (c *Client) GetAllProducts(ctx context.Context) ([]*Product, error) {
 
-	resp, err := c.client.Get(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
+	resp, err := c.client.Get(ctx, etcdutil.Group("product"), clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func (c *Client) GetAllProducts(ctx context.Context) ([]*Product, error) {
 
 func (c *Client) GetProductsWithCondition(ctx context.Context, platform string, market string, locale string) ([]*Product, error) {
 
-	resp, err := c.client.Get(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
+	resp, err := c.client.Get(ctx, etcdutil.Group("product"), clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -304,11 +304,11 @@ func (c *Client) GetProductsWithCondition(ctx context.Context, platform string, 
 
 
 func (c *Client) DeleteProduct(ctx context.Context, id string) error {
-	_, err := c.client.Delete(context.Background(), etcdutil.Identifier("product", id), clientv3.WithPrefix())
+	_, err := c.client.Delete(ctx, etcdutil.Identifier("product", id), clientv3.WithPrefix())
 	return err
 }
 
 func (c *Client) DeleteAllProducts(ctx context.Context) error {
-	_, err := c.client.Delete(context.Background(), etcdutil.Group("product"), clientv3.WithPrefix())
+	_, err := c.client.Delete(ctx, etcdutil.Group("product"), clientv3.WithPrefix())
 	return err
 }

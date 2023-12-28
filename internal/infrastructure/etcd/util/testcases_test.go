@@ -1,28 +1,9 @@
 package etcdutil_test
 
-import etcdutil "github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd/util"
-
-type Worker struct {
-	ID       string `etcd:"id"`
-	Platform string `etcd:"platform"`
-	Status   string `etcd:"status"`
-}
-
-func (w *Worker) Name() string {
-	return "worker"
-}
-
-type Product struct {
-	ID       string `etcd:"id"`
-	Platform string `etcd:"platform"`
-	Symbol   string `etcd:"symbol"`
-	Worker   string `etcd:"worker"`
-	Status   string `etcd:"status"`
-}
-
-func (p *Product) Name() string {
-	return "product"
-}
+import (
+	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
+	etcdutil "github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd/util"
+)
 
 // Current version does not provide Nested struct, only flat struct is supported.
 type Nested struct {
@@ -58,9 +39,11 @@ var cases []struct {
 			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d":          "",
 			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/platform": "kis",
 			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/status":   "waiting",
+			"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/lease_id":  "0",
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886":          "",
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/platform": "kis",
 			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/status":   "active",
+			"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/lease_id":  "0",
 		},
 		group: []group{
 			{
@@ -68,12 +51,14 @@ var cases []struct {
 					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d":          "",
 					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/platform": "kis",
 					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/status":   "waiting",
+					"/worker/9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d/lease_id":  "0",
 				},
-				model: &Worker{},
-				data: &Worker{
+				model: &etcd.Worker{},
+				data: &etcd.Worker{
 					ID:       "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
 					Platform: "kis",
 					Status:   "waiting",
+					LeaseID:  "0",
 				},
 			},
 			{
@@ -81,12 +66,14 @@ var cases []struct {
 					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886":          "",
 					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/platform": "kis",
 					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/status":   "active",
+					"/worker/b9992d7b-a926-483a-84f8-bbc05dee7886/lease_id":  "0",
 				},
-				model: &Worker{},
-				data: &Worker{
+				model: &etcd.Worker{},
+				data: &etcd.Worker{
 					ID:       "b9992d7b-a926-483a-84f8-bbc05dee7886",
 					Platform: "kis",
 					Status:   "active",
+					LeaseID:  "0",
 				},
 			},
 		},
@@ -97,13 +84,13 @@ var cases []struct {
 			"/product/test.goboolean.kor":          "",
 			"/product/test.goboolean.kor/platform": "kis",
 			"/product/test.goboolean.kor/symbol":   "goboolean",
-			"/product/test.goboolean.kor/worker":   "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
-			"/product/test.goboolean.kor/status":   "onsubscribe",
+			"/product/test.goboolean.kor/locale":   "kor",
+			"/product/test.goboolean.kor/market":   "stock",
 			"/product/test.goboolean.eng":          "",
 			"/product/test.goboolean.eng/platform": "polygon",
 			"/product/test.goboolean.eng/symbol":   "gofalse",
-			"/product/test.goboolean.eng/worker":   "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
-			"/product/test.goboolean.eng/status":   "onsubscribe",
+			"/product/test.goboolean.eng/locale":   "eng",
+			"/product/test.goboolean.eng/market":   "stock",
 		},
 		group: []group{
 			{
@@ -111,16 +98,16 @@ var cases []struct {
 					"/product/test.goboolean.kor":          "",
 					"/product/test.goboolean.kor/platform": "kis",
 					"/product/test.goboolean.kor/symbol":   "goboolean",
-					"/product/test.goboolean.kor/worker":   "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
-					"/product/test.goboolean.kor/status":   "onsubscribe",
+					"/product/test.goboolean.kor/locale":   "kor",
+					"/product/test.goboolean.kor/market":   "stock",
 				},
-				model: &Product{},
-				data: &Product{
+				model: &etcd.Product{},
+				data: &etcd.Product{
 					ID:       "test.goboolean.kor",
 					Platform: "kis",
 					Symbol:   "goboolean",
-					Worker:   "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
-					Status:   "onsubscribe",
+					Locale:   "kor",
+					Market:   "stock",
 				},
 			},
 			{
@@ -128,16 +115,16 @@ var cases []struct {
 					"/product/test.goboolean.eng":          "",
 					"/product/test.goboolean.eng/platform": "polygon",
 					"/product/test.goboolean.eng/symbol":   "gofalse",
-					"/product/test.goboolean.eng/worker":   "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
-					"/product/test.goboolean.eng/status":   "onsubscribe",
+					"/product/test.goboolean.eng/locale":   "eng",
+					"/product/test.goboolean.eng/market":   "stock",
 				},
-				model: &Product{},
-				data: &Product{
+				model: &etcd.Product{},
+				data: &etcd.Product{
 					ID:       "test.goboolean.eng",
 					Platform: "polygon",
 					Symbol:   "gofalse",
-					Worker:   "9cf226f7-4ee8-4a5c-9d2f-6d7c74f6727d",
-					Status:   "onsubscribe",
+					Locale:   "eng",
+					Market:   "stock",
 				},
 			},
 		},
