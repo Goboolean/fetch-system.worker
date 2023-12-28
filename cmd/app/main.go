@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	_ "github.com/Goboolean/common/pkg/env"
+	_ "github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
 )
 
 
