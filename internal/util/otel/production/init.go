@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/Goboolean/fetch-system.worker/internal/util/otel"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -16,8 +18,10 @@ func init() {
 
 	close, err = otel.InitGRPCMeter(context.Background(), endpoint)
 	if err != nil {
-		panic(err)
+		panic(errors.Wrap(err, "failed to initialize otel"))
 	}
+
+	log.Info("OpenTelemetry is ready")
 }
 
 

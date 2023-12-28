@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	_ "github.com/Goboolean/common/pkg/env"
+	"github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
 	_ "github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
 )
 
@@ -55,6 +56,8 @@ func main() {
 
 	ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+
+	defer production.Close(ctx)
 
 	if err := taskManager.RegisterWorker(ctx); err != nil {
 		panic(err)
