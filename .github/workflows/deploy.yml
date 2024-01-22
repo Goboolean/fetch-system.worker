@@ -1,4 +1,4 @@
-name: Deploy image to production
+name: Continuous Deployment
 
 on:
   push:
@@ -16,6 +16,7 @@ jobs:
         run: |
           echo "${{ secrets.ENV }}" > deploy/.env
 
-      - name: Build & push image
+      - name: Build & deploy image
         run: |
           make build-app
+          make deploy-app

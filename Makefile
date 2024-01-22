@@ -5,6 +5,8 @@ test-app:
 build-app:
 	docker build -t registry.mulmuri.dev/fetch-system-worker:latest -f ./deploy/Dockerfile .
 	docker push registry.mulmuri.dev/fetch-system-worker:latest
+
+deploy-app:
 	helm upgrade fetch-system ~/lab -n goboolean
 
 generate-wire:
