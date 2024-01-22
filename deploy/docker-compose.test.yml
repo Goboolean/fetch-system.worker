@@ -11,6 +11,10 @@ services:
      - WORKER_ID=test
      - OTEL_ENDPOINT=otel-collector:4317
      - MODE=development
+    depends_on:
+      - etcd
+      - kafka
+      - otel-collector
     env_file:
       - .env
 

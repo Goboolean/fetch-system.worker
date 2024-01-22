@@ -17,6 +17,7 @@ import (
 	"github.com/Goboolean/fetch-system.worker/internal/domain/vo"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/etcd"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kafka"
+	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/kis"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/mock"
 	"github.com/Goboolean/fetch-system.worker/internal/infrastructure/polygon"
 	"github.com/pkg/errors"
@@ -96,6 +97,20 @@ func InitializePolygonCryptoClient(ctx context.Context) (out.DataFetcher, func()
 	}
 	return dataFetcher, func() {
 		cleanup()
+	}, nil
+}
+
+func InitializeKISStockClient(ctx context.Context) (out.DataFetcher, func(), error) {
+	configMap := ProvideKISConfig()
+	client, err := kis.New(configMap)
+	if err != nil {
+		return nil, nil, err
+	}
+	dataFetcher, err := adapter.NewStockKISAdapter(client)
+	if err != nil {
+		return nil, nil, err
+	}
+	return dataFetcher, func() {
 	}, nil
 }
 
@@ -272,6 +287,22 @@ func ProvidePolygonCryptoClient(ctx context.Context, c *resolver.ConfigMap) (*po
 	}, nil
 }
 
+func ProvideKISStockClient(ctx context.Context, c *resolver.ConfigMap) (*kis.Client, func(), error) {
+	client, err := kis.New(c)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to create kis client")
+	}
+	if err := client.Ping(ctx); err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to send ping to kis client")
+	}
+	logrus.Info("KIS client is ready")
+
+	return client, func() {
+		client.Close()
+		logrus.Info("KIS client is successfully closed")
+	}, nil
+}
+
 func ProvideMockGenerator(c *resolver.ConfigMap) (*mock.Client, func(), error) {
 	client, err := mock.New(c)
 	if err != nil {
@@ -299,7 +330,12 @@ func InitializeFetcher(ctx context.Context) (out.DataFetcher, func(), error) {
 			return nil, nil, fmt.Errorf("invalid market: %s", os.Getenv("MARKET"))
 		}
 	case "KIS":
-		return nil, nil, fmt.Errorf("not implemented")
+		switch os.Getenv("MARKET") {
+		case "STOCK":
+			return InitializeKISStockClient(ctx)
+		default:
+			return nil, nil, fmt.Errorf("invalid market: %s", os.Getenv("MARKET"))
+		}
 	case "MOCK":
 		return InitializeMockGenerator(ctx)
 	default:

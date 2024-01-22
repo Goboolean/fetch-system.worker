@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/Goboolean/common/pkg/resolver"
+	"github.com/Goboolean/fetch-system.worker/internal/util/otel"
 	polygonrest "github.com/polygon-io/client-go/rest"
 	"github.com/polygon-io/client-go/websocket"
 	"github.com/polygon-io/client-go/websocket/models"
@@ -132,9 +133,11 @@ func (c *client[T]) Subscribe() (<-chan T, error) {
 				if !ok {
 					log.WithField("data", out).
 					Error("Failed to cast data. There is inconsistency between the infrastructure type and data type")
+					otel.PolygonStockErrorCount.Add(ctx, 1)
 					continue
 				}
 
+				otel.PolygonStockReceivedCount.Add(ctx, 1)
 				c.ch <- data
 			}
 		}

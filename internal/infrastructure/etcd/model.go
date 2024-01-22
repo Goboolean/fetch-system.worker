@@ -3,10 +3,11 @@ package etcd
 
 
 type Worker struct {
-	ID       string `etcd:"id"`        // uuid format
-	Platform string `etcd:"platform"`  // kis, polygon, buycycle, ...
-	Status   string `etcd:"status"`    // active, waiting, dead
-	LeaseID  string  `etcd:"lease_id"`  // lease id
+	ID        string `etcd:"id"`        // uuid format
+	Platform  string `etcd:"platform"`  // kis, polygon, buycycle, ...
+	Status    string `etcd:"status"`    // active, waiting, dead
+	LeaseID   string `etcd:"lease_id"`  // lease id
+	Timestamp string `etcd:"timestamp"` // timestamp
 }
 
 func (w *Worker) Name() string {

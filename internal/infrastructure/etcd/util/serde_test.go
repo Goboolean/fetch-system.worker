@@ -31,7 +31,7 @@ func Test_GroupByPrefix(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, len(tt.group), len(got))
 			for _, v := range tt.group {
-				assert.True(t, Contains(got, v.str))
+				assert.Contains(t, got, v.str)
 			}
 		})
 	}

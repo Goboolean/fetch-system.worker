@@ -232,8 +232,16 @@ func parseStringToKORTrade(data []string) (*Trade, error) {
 		return nil, err
 	}
 
+	var symbol string
+	array := strings.Split(detail.MKSC_SHRN_ISCD, "|")
+	if len(array) == 4 {
+		symbol = array[3]
+	} else {
+		symbol = array[0]
+	}
+
 	return &Trade{
-		Symbol:    detail.MKSC_SHRN_ISCD,
+		Symbol:    symbol,
 		Price:     price,
 		Size:      size,
 		Timestamp: time.Now().UnixNano(),

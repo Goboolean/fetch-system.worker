@@ -11,6 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	_ "github.com/Goboolean/common/pkg/env"
+	"github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
+	_ "github.com/Goboolean/fetch-system.worker/internal/util/otel/production"
 )
 
 
@@ -21,7 +23,7 @@ import (
 func main() {
 	log.Info("Application Running...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 
 	kafka, cleanup, err := wire.InitializeKafkaProducer(ctx)
 	if err != nil {
@@ -55,6 +57,8 @@ func main() {
 	ctx, cancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	defer production.Close(ctx)
+
 	if err := taskManager.RegisterWorker(ctx); err != nil {
 		panic(err)
 	}
@@ -62,6 +66,9 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("Panic recovered: ", r)
+			if err := taskManager.Shutdown(); err != nil {
+				log.WithField("error", err).Error("Failed to shutdown task manager")
+			}
 			cancel()
 		}
 	}()
@@ -69,11 +76,15 @@ func main() {
 	select {
 	case <-ctx.Done():
 		log.Info("Application Shutdown...")
-		taskManager.Shutdown()
+		if err := taskManager.Shutdown(); err != nil {
+			log.WithField("error", err).Error("Failed to shutdown task manager")
+		}
 		return
 	case <-taskManager.OnConnectionFailed():
 		log.Error("Connection failed...")
-		taskManager.Cease()
+		if err := taskManager.Cease(); err != nil {
+			log.WithField("error", err).Error("Failed to cease task manager")
+		}
 		return
 	}	
 }

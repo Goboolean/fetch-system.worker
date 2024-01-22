@@ -25,11 +25,19 @@ func NewKafkaAdapter(p *kafka.Producer, w *vo.Worker) out.DataDispatcher {
 func (a *KafkaAdapter) OutputStream(ch <-chan *vo.Trade) error {
 	go func() {
 		for trade := range ch {
-			data := &model.TradeProtobuf{
+			data := &model.TradeJson{
 				Price:     trade.Price,
 				Size:      trade.Size,
 				Timestamp: trade.Timestamp.Unix(),
 			}
+			if err := a.p.ProduceJsonTrade(trade.ID, data); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"error": err,
+					"id":    trade.ID,
+					"data":  data,
+				}).Panic("Failed to produce trade")
+			}
+			/*
 			if err := a.p.ProduceProtobufTrade(trade.ID, string(a.w.Platform), string(a.w.Market), data); err != nil {
 				logrus.WithFields(logrus.Fields{
 					"error": err,
@@ -37,6 +45,7 @@ func (a *KafkaAdapter) OutputStream(ch <-chan *vo.Trade) error {
 					"data":  data,
 				}).Panic("Failed to produce trade")
 			}
+			*/
 		}
 	}()
 	return nil
