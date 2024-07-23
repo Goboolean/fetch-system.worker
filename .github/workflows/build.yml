@@ -8,6 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -23,10 +24,43 @@ jobs:
   build:
     needs: test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Build & push retriever image
+      - name: Decrypt environment variables
+        run: |
+          echo "${{ secrets.ENV }}" base64 -d > .env
+
+      - name: Build an app
         run: |
           make build-app
+
+      - name: Set up Docker daemon to using HTTP
+        run: |
+          sudo mkdir -p /etc/docker
+          echo '{"insecure-registries":["${{ secrets.HARBOR_REGISTRY }}"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: Login to Harbor
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.HARBOR_REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+        
+      - name: Push Docker image to Harbor
+        run: |
+          docker images
+          docker tag fetch-system-worker:latest ${{ secrets.HARBOR_REGISTRY }}/fetch-system/fetch-system-worker:latest
+          docker push ${{ secrets.HARBOR_REGISTRY }}/fetch-system/fetch-system-worker:latest
+
+  kustomize:
+    runs-on: ubuntu-latest
+    needs: build
+
+    # Kustomize repository update workerflow
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
