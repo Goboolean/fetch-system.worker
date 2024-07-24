@@ -1,13 +1,14 @@
 name: Continuous Integration
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/**
 
 jobs:
   test:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2

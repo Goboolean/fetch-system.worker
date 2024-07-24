@@ -3,11 +3,7 @@ test-app:
 	@docker compose -f ./deploy/docker-compose.test.yml down
 
 build-app:
-	docker build -t registry.mulmuri.dev/fetch-system-worker:latest -f ./deploy/Dockerfile .
-	docker push registry.mulmuri.dev/fetch-system-worker:latest
-
-deploy-app:
-	helm upgrade fetch-system ~/lab -n goboolean
+	docker build -t fetch-system-worker:latest -f ./deploy/Dockerfile .
 
 generate-wire:
 	wire cmd/wire/wire_setup.go
